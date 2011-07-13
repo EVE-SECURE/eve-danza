@@ -1,6 +1,6 @@
-7/7/2011
+7/13/2011 - Updated
 
-This is the first version of the Eve Danza injection suite. Over time, I will update the included scripts and the injector. The current injector, lolpy, was created by wibiti from PublicDemands (thanks!).
+This is the Eve Danza injection suite. Over time, I will update the included scripts and the injector. The current injector, lolpy, was created by wibiti from PublicDemands (thanks!).
 
 The current scripts and their features:
 
@@ -9,6 +9,7 @@ ProbeHelperSE:
 - Averaged selection position (instead of going to first item on list)
 - Save/load probe positions; shift click to save result location, and control click to save current probe position, left-click to send probes to the saved location
 - Error reporting
+- Listing of ship types for combat scanner (hidden by default)
 
 Dscanner:
 - Added slider to adjust d-scan range (from 1AU to 14.4AU, in .5 steps)
@@ -26,12 +27,10 @@ Dscanner:
 - "One-click" approximation by Quicksort (specific result) and Bucketsort (all results)
 - Distance stored by itemID instead of entryname
 - "One-click" celestial conescan
-- Global storage for distance results
 - Removing/reducing scan timeout duration
 
 Injector:
 - GUI support
-- Simultaneous injection of multiple files
 - Automated injection
 - Better multi-client support
 

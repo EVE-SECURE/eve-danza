@@ -177,7 +177,7 @@ try:
                         continue
                 hint = entryname
                 data = util.KeyVal()
-                data.label = ('%s<t>%s<t>%s' % (entryname,
+                data.label = ('%s (%d)<t>%s<t>%s' % (entryname, (itemID%1000000000000),
                  typeinfo.name,
                  diststr))
                 data.Set(('sort_%s' % mls.UI_GENERIC_DISTANCESHORT), dist)
