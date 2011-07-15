@@ -14,6 +14,7 @@ ProbeHelperSE:
 Dscanner:
 - Added slider to adjust d-scan range (from 1AU to 14.4AU, in .5 steps)
 - Distance approximation; the script will save the last max distance for any given result, so that after scanning at various ranges the results have their distance approximated
+- Display of itemID in parenthesese behind item name
 
 
 TO-DO:
