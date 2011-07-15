@@ -268,14 +268,16 @@ try:
 							result.typeName = cfg.invtypes.Get(typeID).name
 				if isinstance(result.data, Vector3):
 					dist = (result.data - myPos).Length()
-					result.groupName = cfg.invgroups.Get(result.groupID).name
+					if result.groupName == None:
+						result.groupName = cfg.invgroups.Get(result.groupID).name
 				elif isinstance(result.data, float):
 					dist = result.data
 					certainty = min(0.9999, certainty)
 				else:
 					dist = (result.data.point - myPos).Length()
 					certainty = min(0.9999, certainty)
-					result.groupName = cfg.invgroups.Get(result.groupID).name
+					if result.groupName == None:
+						result.groupName = cfg.invgroups.Get(result.groupID).name
 				texts = [result.id,
 				 result.scanGroupName,
 				 (result.groupName or ''),
