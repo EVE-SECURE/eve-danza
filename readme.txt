@@ -11,6 +11,8 @@ ProbeHelperSE:
 - Error reporting
 - Listing of ship types for combat scanner (hidden by default)
 - Send probes to active item
+*
+- WatchWarpOff: shift-click to start watching balls; left-click again to remove nonexistant code.
 
 Dscanner:
 - Added slider to adjust d-scan range (from 1AU to 14.4AU, in .5 steps)
