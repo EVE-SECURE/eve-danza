@@ -10,6 +10,7 @@ ProbeHelperSE:
 - Save/load probe positions; shift click to save result location, and control click to save current probe position, left-click to send probes to the saved location
 - Error reporting
 - Listing of ship types for combat scanner (hidden by default)
+- Send probes to active item
 
 Dscanner:
 - Added slider to adjust d-scan range (from 1AU to 14.4AU, in .5 steps)
@@ -20,15 +21,12 @@ Dscanner:
 TO-DO:
 
 ProbeHelperSE:
-- Send to celestials
 - Save/load ignorelist
 - Alternative scanning mode using 2 sets of 4 probes
 
 Dscanner:
 - "One-click" approximation by Quicksort (specific result) and Bucketsort (all results)
-- Distance stored by itemID instead of entryname
 - "One-click" celestial conescan
-- Removing/reducing scan timeout duration
 
 Injector:
 - GUI support
