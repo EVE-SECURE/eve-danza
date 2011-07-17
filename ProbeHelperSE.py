@@ -26,6 +26,13 @@ try:
 		old_apply_attributes
 	except NameError:
 		old_apply_attributes = form.Scanner.ApplyAttributes
+		
+	try:
+		old_remove_ball = sm.GetService('michelle').GetBallpark().RemoveBall
+
+		form.Scanner.ballsToTheWall = list()
+	except:
+		sm.GetService('gameui').Say("exception1")
 
 
 	def safetycheck(func):
@@ -41,6 +48,25 @@ try:
 				except:
 					print "exception in safetycheck"
 		return wrapper
+	
+	@safetycheck
+	def MyRemoveBall(ball, *args):
+		form.Scanner.ballsToTheWall.append(ball)
+		return
+	
+	@safetycheck
+	def WatchWarpOff(self, *args):		
+		if uicore.uilib.Key(uiconst.VK_SHIFT):
+			sm.GetService('michelle').GetBallpark().RemoveBall = MyRemoveBall
+			return
+		sm.GetService('michelle').GetBallpark().RemoveBall = old_remove_ball
+		for ball in form.Scanner.ballsToTheWall:
+			sm.GetService('michelle').GetBallpark().RemoveBall(ball)
+		form.Scanner.ballsToTheWall = list()
+		uthread.new(form.OverView.UpdateAll)	
+		
+	
+	form.Scanner.WatchWarpOff = WatchWarpOff  
 	
 	@safetycheck
 	def ContractProbes(self, *args):
@@ -381,7 +407,12 @@ try:
 		btn.hint = "SAVE/SEND TO LOCATION3"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToBtn = btn
-
+		
+		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=380)
+		btn.OnClick = self.WatchWarpOff
+		btn.hint = "Watch!"
+		btn.sr.icon.LoadIcon('44_03')
+		self.sr.WatchBtn = btn
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
 
