@@ -27,6 +27,7 @@ try:
 	except NameError:
 		old_apply_attributes = form.Scanner.ApplyAttributes
 
+
 	def safetycheck(func):
 		def wrapper(*args, **kwargs):
 			try:
@@ -40,7 +41,7 @@ try:
 				except:
 					print "exception in safetycheck"
 		return wrapper
-		
+	
 	@safetycheck
 	def ContractProbes(self, *args):
 		scanSvc = sm.GetService("scanSvc")
@@ -89,6 +90,12 @@ try:
 		selected = self.sr.resultscroll.GetSelected()
 		points = []
 		try:
+			itemid = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
+			ball= eve.LocalSvc("michelle").GetBallpark().GetBall(itemid)
+			target2= Vector3(ball.x,ball.y, ball.z)		
+		except:
+			return
+		try:
 			for sel in selected:
 				data = sel.result.data
 
@@ -105,7 +112,10 @@ try:
 				target += p
 			target /= len(points)
 		except:
-			return
+			return 
+		
+		if uicore.uilib.Key(uiconst.VK_SHIFT):
+			target = target2
 
 		scanSvc = sm.GetService("scanSvc")
 		probeData = [(k,v) for (k,v) in scanSvc.GetProbeData().iteritems() if v.state == const.probeStateIdle]
@@ -371,6 +381,7 @@ try:
 		btn.hint = "SAVE/SEND TO LOCATION3"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToBtn = btn
+
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
 
