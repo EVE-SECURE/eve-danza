@@ -115,13 +115,15 @@ try:
 	def SendProbes(self, *args):
 		selected = self.sr.resultscroll.GetSelected()
 		points = []
+		target = Vector3(0,0,0)
 		try:
-			itemid = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
-			ball= eve.LocalSvc("michelle").GetBallpark().GetBall(itemid)
-			target2= Vector3(ball.x,ball.y, ball.z)		
+		    itemid = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
+		    ball= eve.LocalSvc("michelle").GetBallpark().GetBall(itemid)
+		    target2= Vector3(ball.x,ball.y, ball.z)		
 		except:
+			sm.GetService('gameui').Say("uh oh")
 			return
-		try:
+		if selected:
 			for sel in selected:
 				data = sel.result.data
 
@@ -132,13 +134,10 @@ try:
 					data = data.point
 
 				points.append(data)
-			target = Vector3(0,0,0)
 			csum = 0
 			for p in points:
 				target += p
 			target /= len(points)
-		except:
-			return 
 		
 		if uicore.uilib.Key(uiconst.VK_SHIFT):
 			target = target2
