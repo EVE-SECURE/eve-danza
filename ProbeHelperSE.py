@@ -116,13 +116,13 @@ try:
 		selected = self.sr.resultscroll.GetSelected()
 		points = []
 		target = Vector3(0,0,0)
+		target2 = Vector3(0,0,0)
 		try:
-		    itemid = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
-		    ball= eve.LocalSvc("michelle").GetBallpark().GetBall(itemid)
-		    target2= Vector3(ball.x,ball.y, ball.z)		
+			itemid = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
+			ball= eve.LocalSvc("michelle").GetBallpark().GetBall(itemid)
+			target2= Vector3(ball.x,ball.y, ball.z)		
 		except:
-			sm.GetService('gameui').Say("uh oh")
-			return
+			sm.GetService('gameui').Say("No active item, going to scan results")
 		if selected:
 			for sel in selected:
 				data = sel.result.data
@@ -139,7 +139,7 @@ try:
 				target += p
 			target /= len(points)
 		
-		if uicore.uilib.Key(uiconst.VK_SHIFT):
+		if uicore.uilib.Key(uiconst.VK_SHIFT) or (not selected):
 			target = target2
 
 		scanSvc = sm.GetService("scanSvc")
