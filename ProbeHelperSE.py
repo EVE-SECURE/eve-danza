@@ -63,7 +63,7 @@ try:
 		for ball in form.Scanner.ballsToTheWall:
 			sm.GetService('michelle').GetBallpark().RemoveBall(ball)
 		form.Scanner.ballsToTheWall = list()
-		uthread.new(form.OverView.UpdateAll)	
+		form.OverView.UpdateAll	
 		
 	
 	form.Scanner.WatchWarpOff = WatchWarpOff  
