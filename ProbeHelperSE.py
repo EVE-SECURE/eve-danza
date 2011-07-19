@@ -22,6 +22,9 @@ try:
 	import uiconst
 	import uicls
 	
+	import listentry
+	import state
+	
 	try:
 		old_apply_attributes
 	except NameError:
@@ -48,6 +51,30 @@ try:
 				except:
 					print "exception in safetycheck"
 		return wrapper
+	
+	@safetycheck
+	def MyAddTab(self):
+		ret = uix.NamePopup(mls.UI_CMD_ADD_TAB, mls.UI_INFLIGHT_TYPELABEL, maxLength=15)
+		if not ret:
+			return 
+		numTabs = 8
+		tabsettings = settings.user.overview.Get('tabsettings', {})
+		if (len(tabsettings) >= numTabs):
+			eve.Message('TooManyTabs', {'numTabs': numTabs})
+			return 
+		if (len(tabsettings) == 0):
+			newKey = 0
+		else:
+			newKey = (max(tabsettings.keys()) + 1)
+		oldtabsettings = tabsettings
+		tabsettings[newKey] = {'name': ret['name'],
+		 'overview': None,
+		 'bracket': None}
+		if self.destroyed:
+			return 
+		self.OnOverviewTabChanged(tabsettings, oldtabsettings)
+		
+	form.OverView.AddTab = MyAddTab
 	
 	@safetycheck
 	def MyRemoveBall(ball, *args):
