@@ -53,6 +53,55 @@ try:
 		return wrapper
 	
 	@safetycheck
+	def MyDblClick(self, *args):
+		sm.GetService('gameui').Say("Flight direction changed!")
+		if (eve.rookieState and (eve.rookieState < 22)):
+			return 
+		self.sr.clicktime = None
+		solarsystemID = eve.session.solarsystemid
+		uthread.Lock(self)
+		try:
+			if (solarsystemID != eve.session.solarsystemid):
+				return 
+			if self.notdbl:
+				return 
+			if (eve.triapp.uilib.Key(uix.VK_SHIFT) and (eve.session.role & service.ROLE_CONTENT)):
+				return 
+			(x, y,) = (eve.triapp.uilib.x, eve.triapp.uilib.y)
+			if (eve.triapp.uilib.rightbtn or (eve.triapp.uilib.mouseTravel > 6)):
+				return 
+			cameraSvc = sm.StartService('camera')
+			if cameraSvc.IsFreeLook():
+				(picktype, pickobject,) = self.GetPick()
+				if pickobject:
+					cameraSvc.LookAt(pickobject.translationCurve.id)
+				return 
+			scene = sm.GetService('sceneManager').GetRegisteredScene('default')
+			camera = sm.GetService('sceneManager').GetRegisteredCamera('default')
+			proj = camera.projection
+			view = camera.view
+			pickDir = scene.PickInfinity(x, y, proj, view)
+			if pickDir:
+				bp = sm.GetService('michelle').GetRemotePark()
+				if (bp is not None):
+					if (solarsystemID != eve.session.solarsystemid):
+						return 
+					try:
+						bp.GotoDirection(pickDir.x, pickDir.y, pickDir.z)
+					except RuntimeError, what:
+						if (what.args[0] != 'MonikerSessionCheckFailure'):
+							raise what
+			shipui = uicore.layer.shipui
+			if shipui.isopen:
+				shipui.UpdateSpeed()
+
+		finally:
+			uthread.UnLock(self)
+	
+	form.InflightNav.MyDblClick = MyDblClick
+
+
+	@safetycheck
 	def MyAddTab(self):
 		ret = uix.NamePopup(mls.UI_CMD_ADD_TAB, mls.UI_INFLIGHT_TYPELABEL, maxLength=15)
 		if not ret:
@@ -86,6 +135,18 @@ try:
 		if uicore.uilib.Key(uiconst.VK_SHIFT):
 			sm.GetService('michelle').GetBallpark().RemoveBall = MyRemoveBall
 			return
+		'''
+		elif uicore.uilib.Key(uiconst.VK_CONTROL):
+			for entry in self.sr.scroll.GetNodes():
+				if not (entry.panel is None):
+					if (entry.slimItem is None):
+						continue
+					if (entry.slimItem() is None):
+						continue
+					color = (1.0, 0.0, 0.0)
+					entry.panel.sr.icon.color.SetRGB(*color)
+					return
+		'''
 		sm.GetService('michelle').GetBallpark().RemoveBall = old_remove_ball
 		for ball in form.Scanner.ballsToTheWall:
 			sm.GetService('michelle').GetBallpark().RemoveBall(ball)
@@ -434,7 +495,7 @@ try:
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToBtn = btn
 		
-		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=380)
+		btn = uix.GetBigButton(32, eve.LocalSvc("window").GetWindow("selecteditemview"), left=315, top=20)
 		btn.OnClick = self.WatchWarpOff
 		btn.hint = "Watch!"
 		btn.sr.icon.LoadIcon('44_03')
