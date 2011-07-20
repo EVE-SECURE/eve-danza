@@ -12,7 +12,8 @@ ProbeHelperSE:
 - Listing of ship types for combat scanner (hidden by default)
 - Send probes to active item
 *
-- WatchWarpOff: shift-click to start watching balls; left-click again to remove nonexistant code.
+- WatchWarpOff: shift-click to start watching balls; left-click again to remove nonexistant code
+- GetNearbyItem: when watching warpoff, returns the item that is closest to the current active item (approximated by distance to you)
 
 Dscanner:
 - Added slider to adjust d-scan range (from 1AU to 14.4AU, in .5 steps)

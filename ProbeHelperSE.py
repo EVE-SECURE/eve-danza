@@ -53,53 +53,34 @@ try:
 		return wrapper
 	
 	@safetycheck
-	def MyDblClick(self, *args):
-		sm.GetService('gameui').Say("Flight direction changed!")
-		if (eve.rookieState and (eve.rookieState < 22)):
-			return 
-		self.sr.clicktime = None
-		solarsystemID = eve.session.solarsystemid
-		uthread.Lock(self)
-		try:
-			if (solarsystemID != eve.session.solarsystemid):
-				return 
-			if self.notdbl:
-				return 
-			if (eve.triapp.uilib.Key(uix.VK_SHIFT) and (eve.session.role & service.ROLE_CONTENT)):
-				return 
-			(x, y,) = (eve.triapp.uilib.x, eve.triapp.uilib.y)
-			if (eve.triapp.uilib.rightbtn or (eve.triapp.uilib.mouseTravel > 6)):
-				return 
-			cameraSvc = sm.StartService('camera')
-			if cameraSvc.IsFreeLook():
-				(picktype, pickobject,) = self.GetPick()
-				if pickobject:
-					cameraSvc.LookAt(pickobject.translationCurve.id)
-				return 
-			scene = sm.GetService('sceneManager').GetRegisteredScene('default')
-			camera = sm.GetService('sceneManager').GetRegisteredCamera('default')
-			proj = camera.projection
-			view = camera.view
-			pickDir = scene.PickInfinity(x, y, proj, view)
-			if pickDir:
-				bp = sm.GetService('michelle').GetRemotePark()
-				if (bp is not None):
-					if (solarsystemID != eve.session.solarsystemid):
-						return 
-					try:
-						bp.GotoDirection(pickDir.x, pickDir.y, pickDir.z)
-					except RuntimeError, what:
-						if (what.args[0] != 'MonikerSessionCheckFailure'):
-							raise what
-			shipui = uicore.layer.shipui
-			if shipui.isopen:
-				shipui.UpdateSpeed()
-
-		finally:
-			uthread.UnLock(self)
+	def GetNearbyItem(self, *args):
+		currItem = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
+		bp = eve.LocalSvc("michelle").GetBallpark()
+		currBall = bp.GetBall(currItem)
+		shortestDist = currBall.surfaceDist
+		nearbyItem = currItem    		
+		for itemID in bp.balls.keys():
+			if bp is None:
+				break
+			if (itemID == eve.session.shipid):
+				continue
+			if (itemID == currItem):
+				continue
+			itemBall = bp.GetBall(itemID)
+			proximity = abs(currBall.surfaceDist - itemBall.surfaceDist)
+			if proximity < shortestDist:
+				shortestDist = proximity
+				nearbyItem = itemID
+		slimItem = sm.GetService('michelle').GetItem(nearbyItem)
+		entryname = None
+		if slimItem:
+			entryname = hint = uix.GetSlimItemName(slimItem)
+		if not entryname:
+			entryname = cfg.evelocations.Get(nearbyItem).name
+		diststr = util.FmtDist(shortestDist, maxdemicals=1)
+		sm.GetService('gameui').Say('Nearby Item is: %s, Distance is: %s' % (entryname, diststr, ))
 	
-	form.InflightNav.MyDblClick = MyDblClick
-
+	form.Scanner.GetNearbyItem = GetNearbyItem
 
 	@safetycheck
 	def MyAddTab(self):
@@ -135,23 +116,16 @@ try:
 		if uicore.uilib.Key(uiconst.VK_SHIFT):
 			sm.GetService('michelle').GetBallpark().RemoveBall = MyRemoveBall
 			return
-		'''
+
 		elif uicore.uilib.Key(uiconst.VK_CONTROL):
-			for entry in self.sr.scroll.GetNodes():
-				if not (entry.panel is None):
-					if (entry.slimItem is None):
-						continue
-					if (entry.slimItem() is None):
-						continue
-					color = (1.0, 0.0, 0.0)
-					entry.panel.sr.icon.color.SetRGB(*color)
-					return
-		'''
+			return
+		
 		sm.GetService('michelle').GetBallpark().RemoveBall = old_remove_ball
 		for ball in form.Scanner.ballsToTheWall:
 			sm.GetService('michelle').GetBallpark().RemoveBall(ball)
 		form.Scanner.ballsToTheWall = list()
 		form.OverView.UpdateAll	
+
 		
 	
 	form.Scanner.WatchWarpOff = WatchWarpOff  
@@ -330,6 +304,7 @@ try:
 	def GoToLocations3(self, *args):
 		GoToLocations(self, 3, args)
 
+
 	form.Scanner.GoToLocations3 = GoToLocations3
 	
 	@safetycheck
@@ -453,6 +428,13 @@ try:
 		old_apply_attributes(self, attributes)
 		
 		self.sr.destroyBtn.Close()
+		
+		wnd = sm.GetService('window').GetWindow('selecteditemview', decoClass=form.ActiveItem)
+		if wnd:
+			wnd.SelfDestruct()
+		if session.solarsystemid:
+			sm.GetService('tactical').InitSelectedItem()
+		
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=108)
 		btn.OnClick = self.SaveLoadProbePositions
 		btn.hint = "SHIFT-CLICK TO SAVE PROBES, CLICK TO LOAD PROBES"
@@ -500,6 +482,12 @@ try:
 		btn.hint = "Watch!"
 		btn.sr.icon.LoadIcon('44_03')
 		self.sr.WatchBtn = btn
+		
+		btn = uix.GetBigButton(32, eve.LocalSvc("window").GetWindow("selecteditemview"), left=315, top=55)
+		btn.OnClick = self.GetNearbyItem
+		btn.hint = "Show nearby item"
+		btn.sr.icon.LoadIcon('77_21')
+		self.sr.nearbyBtn = btn
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
 
