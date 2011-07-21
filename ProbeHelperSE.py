@@ -53,12 +53,26 @@ try:
 		return wrapper
 	
 	@safetycheck
+	def TryGetInvItem(self, itemID):
+		if (eve.session.shipid is None):
+			return 
+		ship = eve.GetInventoryFromId(eve.session.shipid)
+		if ship:
+			for invItem in ship.List():
+				if (invItem.itemID == itemID):
+					return invItem
+	
+	form.Scanner.TryGetInvItem = TryGetInvItem
+	
+	@safetycheck
 	def GetNearbyItem(self, *args):
 		currItem = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
 		bp = eve.LocalSvc("michelle").GetBallpark()
 		currBall = bp.GetBall(currItem)
 		shortestDist = currBall.surfaceDist
-		nearbyItem = currItem    		
+		nearbyItem = currItem 
+		nearbyBall = None
+		entryname = None
 		for itemID in bp.balls.keys():
 			if bp is None:
 				break
@@ -66,19 +80,47 @@ try:
 				continue
 			if (itemID == currItem):
 				continue
+			'''
+			slimItem = uix.GetBallparkRecord(itemID)
+			invItem = self.TryGetInvItem(itemID)
+			if slimItem:
+				categoryID = cfg.invtypes.Get(slimItem.typeID).categoryID
+				groupID = cfg.invtypes.Get(slimItem.typeID).groupID
+			elif invItem:
+				typeOb = cfg.invtypes.Get(invItem.typeID)
+				groupID = typeOb.groupID
+				categoryID = typeOb.categoryID
+			if not ((categoryID == const.categoryAsteroid) or ((groupID in (const.groupAsteroidBelt,
+				 const.groupPlanet,
+				 const.groupMoon,
+				 const.groupSun,
+				 const.groupHarvestableCloud,
+				 const.groupSecondarySun)) )):
+				continue
+			'''
 			itemBall = bp.GetBall(itemID)
 			proximity = abs(currBall.surfaceDist - itemBall.surfaceDist)
 			if proximity < shortestDist:
 				shortestDist = proximity
 				nearbyItem = itemID
+				nearbyBall = itemBall
 		slimItem = sm.GetService('michelle').GetItem(nearbyItem)
-		entryname = None
 		if slimItem:
-			entryname = hint = uix.GetSlimItemName(slimItem)
+			entryname = uix.GetSlimItemName(slimItem)
 		if not entryname:
 			entryname = cfg.evelocations.Get(nearbyItem).name
-		diststr = util.FmtDist(shortestDist, maxdemicals=1)
-		sm.GetService('gameui').Say('Nearby Item is: %s, Distance is: %s' % (entryname, diststr, ))
+		realdiststr = None
+		try:
+			nearbyPos = Vector3(nearbyBall.x, nearbyBall.y, nearbyBall.z)
+			currPos = Vector3(currBall.x, currBall.y, currBall.z)
+			realDist = (nearbyPos - currPos).Length()
+			realdiststr = util.FmtDist(realDist, maxdemicals=1)
+		except:
+			pass
+		if not realdiststr:
+			realdiststr = ''
+
+		sm.GetService('gameui').Say('Nearby Item is: %s, Distance is: %s' % (entryname, realdiststr, ))
 	
 	form.Scanner.GetNearbyItem = GetNearbyItem
 
