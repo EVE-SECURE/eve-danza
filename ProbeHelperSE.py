@@ -53,6 +53,11 @@ try:
 		return wrapper
 	
 	@safetycheck
+	def MyLocalEchoAll(msg, charid):
+		return
+
+	
+	@safetycheck
 	def TryGetInvItem(self, itemID):
 		if (eve.session.shipid is None):
 			return 
@@ -345,9 +350,30 @@ try:
 	@safetycheck
 	def GoToLocations3(self, *args):
 		GoToLocations(self, 3, args)
-
-
+		#sm.GetService('LSC').LocalEchoAll = MyLocalEchoAll
 	form.Scanner.GoToLocations3 = GoToLocations3
+	
+	@safetycheck
+	def GetHostileCount(self):
+		localChannel = None
+		for channelID in sm.GetService('LSC').channels.keys():
+			channel = sm.GetService('LSC').channels[channelID]
+			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
+				localChannel = channel
+		mlist = localChannel.memberList
+		hostileCount = 0
+		try:
+			for charID in mlist.keys():
+				#sm.GetService('gameui').Say('%s' % (charID, ))
+				standing = sm.GetService('standing').GetStanding(eve.session.charid, charID)
+				if (standing < 0.5):
+					hostileCount = hostileCount + 1
+		except:
+			sm.GetService('gameui').Say('oops')
+		#sm.GetService('gameui').Say('Hostiles in local: %g' % (hostileCount, ))
+		return hostileCount
+ 
+	form.Scanner.GetHostileCount = GetHostileCount
 	
 	@safetycheck
 	def MyLoadResultList(self):
@@ -530,6 +556,14 @@ try:
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.nearbyBtn = btn
+		
+		localChannel = None
+		for channelID in sm.GetService('LSC').channels.keys():
+			channel = sm.GetService('LSC').channels[channelID]
+			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
+				localChannel = channel
+		hostileLabel = uicls.Label(text=('Hostiles [%d]' % (self.GetHostileCount(), )), parent=localChannel.window, align=uiconst.TOALL, top=0, left=100, autoheight=False, autowidth=False)
+		
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
 
