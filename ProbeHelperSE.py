@@ -34,16 +34,9 @@ try:
 		old_remove_ball = sm.GetService('michelle').GetBallpark().RemoveBall
 
 		form.Scanner.ballsToTheWall = list()
+
 	except:
 		sm.GetService('gameui').Say("exception1")
-	try:
-		localChannel = None
-		for channelID in sm.GetService('LSC').channels.keys():
-			channel = sm.GetService('LSC').channels[channelID]
-			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
-				localChannel = channel
-	except:
-		sm.GetService('gameui').Say("exception2")
 
 	def safetycheck(func):
 		def wrapper(*args, **kwargs):
@@ -58,19 +51,29 @@ try:
 				except:
 					print "exception in safetycheck"
 		return wrapper
+	
+	@safetycheck
+	def GetLocal():
+		ret = None
+		for channelID in sm.GetService('LSC').channels.keys():
+			channel = sm.GetService('LSC').channels[channelID]
+			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
+				ret = channel
+		return ret
 			
 	@safetycheck
-	def UpdateCount():
+	def UpdateCount(self):
 		#sm.GetService('gameui').Say('Hostile count updated!')
-		count = (blueCount, neutCount, orangeCount, redCount, )= GetHostileCount()
+		count = (blueCount, neutCount, orangeCount, redCount, )= self.GetHostileCount()
 		sm.GetService('gameui').Say('Blue[%d] Neut[%d] Orange[%d] Red[%d]' % count)
 		hostilecount = neutCount + orangeCount + redCount
 		labeltext = ('HOSTILES [%d]' % hostilecount)
-		hostileLabel.text = labeltext
-		hostileLabel2.text = labeltext
-		
+		self.hostileLabel.text = labeltext
+	
+	form.Scanner.UpdateCount = UpdateCount
+	
 	@safetycheck
-	def GetHostileCount():
+	def GetHostileCount(self):
 		'''
 		localChannel = None
 		for channelID in sm.GetService('LSC').channels.keys():
@@ -78,7 +81,7 @@ try:
 			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
 				localChannel = channel
 		'''
-		mlist = localChannel.memberList
+		mlist = self.localChannel.memberList
 		redCount = 0
 		blueCount = 0
 		orangeCount = 0
@@ -99,7 +102,8 @@ try:
 		#sm.GetService('gameui').Say('Hostiles in local: %g' % (hostileCount, ))
 		count = (blueCount, neutCount, orangeCount, redCount, )
 		return count
-		
+	
+	form.Scanner.GetHostileCount = GetHostileCount
 
 	@safetycheck
 	def MyUpdateCaption(self, startingup = 0, localEcho = 0):
@@ -600,23 +604,17 @@ try:
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.nearbyBtn = btn
-
+		
+		self.localChannel = GetLocal()
+		self.hostileLabel = uicls.Label(text='', parent=self.localChannel.window, left=90, top=3, fontsize=11, mousehilite=1, letterspace=1, state=uiconst.UI_NORMAL)
+		self.hostileLabel.OnClick = (self.UpdateCount, )
+		self.hostileLabel.hint = "Click me!"
+		self.hostileLabel.strong = 1
+		self.UpdateCount()
 
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
-	
-	try:
-		hostileLabel = uicls.Label(text='', parent=localChannel.window, left=90, top=3, fontsize=11, mousehilite=1, letterspace=1, state=uiconst.UI_NORMAL)
-		hostileLabel2 = uicls.Label(text='', parent=localChannel.window, left=90, top=3, fontsize=11, mousehilite=1, letterspace=1, state=uiconst.UI_NORMAL)
-		hostileLabel.OnClick = (UpdateCount, )
-		hostileLabel.hint = "Click me!"
-		hostileLabel.strong = 1
-		hostileLabel2.OnClick = (UpdateCount, )
-		hostileLabel2.hint = "Click me!"
-		hostileLabel2.strong = 1
-		UpdateCount()
-	except:
-		sm.GetService('gameui').Say("exception3")
+
 
 except:
 	print "ProbeHelper broken."
