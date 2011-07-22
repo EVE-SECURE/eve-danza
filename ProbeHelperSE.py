@@ -36,7 +36,14 @@ try:
 		form.Scanner.ballsToTheWall = list()
 	except:
 		sm.GetService('gameui').Say("exception1")
-
+	try:
+		localChannel = None
+		for channelID in sm.GetService('LSC').channels.keys():
+			channel = sm.GetService('LSC').channels[channelID]
+			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
+				localChannel = channel
+	except:
+		sm.GetService('gameui').Say("exception2")
 
 	def safetycheck(func):
 		def wrapper(*args, **kwargs):
@@ -51,12 +58,71 @@ try:
 				except:
 					print "exception in safetycheck"
 		return wrapper
-	
+			
 	@safetycheck
-	def MyLocalEchoAll(msg, charid):
-		return
+	def UpdateCount():
+		#sm.GetService('gameui').Say('Hostile count updated!')
+		count = (blueCount, neutCount, orangeCount, redCount, )= GetHostileCount()
+		sm.GetService('gameui').Say('Blue[%d] Neut[%d] Orange[%d] Red[%d]' % count)
+		hostilecount = neutCount + orangeCount + redCount
+		labeltext = ('HOSTILES [%d]' % hostilecount)
+		hostileLabel.text = labeltext
+		hostileLabel2.text = labeltext
+		
+	@safetycheck
+	def GetHostileCount():
+		'''
+		localChannel = None
+		for channelID in sm.GetService('LSC').channels.keys():
+			channel = sm.GetService('LSC').channels[channelID]
+			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
+				localChannel = channel
+		'''
+		mlist = localChannel.memberList
+		redCount = 0
+		blueCount = 0
+		orangeCount = 0
+		neutCount = 0
+		try:
+			for charID in mlist.keys():
+				standing = sm.GetService('standing').GetStanding(eve.session.charid, charID)
+				if (standing >= 0.5):
+					blueCount = blueCount + 1
+				elif (standing < 0.5 and standing >= 0.0):
+					neutCount = neutCount + 1
+				elif (standing < 0.0 and standing > -1.0):
+					orangeCount = orangeCount + 1
+				else:
+					redCount = redCount + 1
+		except:
+			sm.GetService('gameui').Say('oops')
+		#sm.GetService('gameui').Say('Hostiles in local: %g' % (hostileCount, ))
+		count = (blueCount, neutCount, orangeCount, redCount, )
+		return count
+		
 
-	
+	@safetycheck
+	def MyUpdateCaption(self, startingup = 0, localEcho = 0):
+		if self.channelInitialized:
+			label = chat.GetDisplayName(self.channelID).split('\\')[-1]
+			label.replace('conversation', 'conv.')
+			label.replace('channel', 'ch.')
+			memberCount = sm.GetService('LSC').GetMemberCount(self.channelID)
+			if (memberCount != self.memberCount):
+				self.memberCount = memberCount
+			if ((type(self.channelID) == types.IntType) or (self.channelID[0] not in ('global', 'regionid', 'constellationid'))):
+				if (self.memberCount > 2):
+					label += (' [%d] [%d]' % (self.memberCount, form.Scanner.GetHostileCount(), ))
+			self.SetCaption(label)
+			
+
+	'''
+	try:
+		form.LSCChannel.UpdateCaption = MyUpdateCaption
+	except:
+		sm.GetService('gameui').Say('uh-oh')
+	'''
+		
 	@safetycheck
 	def TryGetInvItem(self, itemID):
 		if (eve.session.shipid is None):
@@ -350,30 +416,8 @@ try:
 	@safetycheck
 	def GoToLocations3(self, *args):
 		GoToLocations(self, 3, args)
-		#sm.GetService('LSC').LocalEchoAll = MyLocalEchoAll
+
 	form.Scanner.GoToLocations3 = GoToLocations3
-	
-	@safetycheck
-	def GetHostileCount(self):
-		localChannel = None
-		for channelID in sm.GetService('LSC').channels.keys():
-			channel = sm.GetService('LSC').channels[channelID]
-			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
-				localChannel = channel
-		mlist = localChannel.memberList
-		hostileCount = 0
-		try:
-			for charID in mlist.keys():
-				#sm.GetService('gameui').Say('%s' % (charID, ))
-				standing = sm.GetService('standing').GetStanding(eve.session.charid, charID)
-				if (standing < 0.5):
-					hostileCount = hostileCount + 1
-		except:
-			sm.GetService('gameui').Say('oops')
-		#sm.GetService('gameui').Say('Hostiles in local: %g' % (hostileCount, ))
-		return hostileCount
- 
-	form.Scanner.GetHostileCount = GetHostileCount
 	
 	@safetycheck
 	def MyLoadResultList(self):
@@ -556,16 +600,23 @@ try:
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.nearbyBtn = btn
-		
-		localChannel = None
-		for channelID in sm.GetService('LSC').channels.keys():
-			channel = sm.GetService('LSC').channels[channelID]
-			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
-				localChannel = channel
-		hostileLabel = uicls.Label(text=('Hostiles [%d]' % (self.GetHostileCount(), )), parent=localChannel.window, align=uiconst.TOALL, top=0, left=100, autoheight=False, autowidth=False)
-		
+
+
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
+	
+	try:
+		hostileLabel = uicls.Label(text='', parent=localChannel.window, left=90, top=3, fontsize=11, mousehilite=1, letterspace=1, state=uiconst.UI_NORMAL)
+		hostileLabel2 = uicls.Label(text='', parent=localChannel.window, left=90, top=3, fontsize=11, mousehilite=1, letterspace=1, state=uiconst.UI_NORMAL)
+		hostileLabel.OnClick = (UpdateCount, )
+		hostileLabel.hint = "Click me!"
+		hostileLabel.strong = 1
+		hostileLabel2.OnClick = (UpdateCount, )
+		hostileLabel2.hint = "Click me!"
+		hostileLabel2.strong = 1
+		UpdateCount()
+	except:
+		sm.GetService('gameui').Say("exception3")
 
 except:
 	print "ProbeHelper broken."
