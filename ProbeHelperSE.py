@@ -233,9 +233,6 @@ try:
 		if uicore.uilib.Key(uiconst.VK_SHIFT):
 			sm.GetService('michelle').GetBallpark().RemoveBall = MyRemoveBall
 			return
-
-		elif uicore.uilib.Key(uiconst.VK_CONTROL):
-			return
 		
 		sm.GetService('michelle').GetBallpark().RemoveBall = old_remove_ball
 		for ball in form.Scanner.ballsToTheWall:
@@ -545,11 +542,18 @@ try:
 		
 		self.sr.destroyBtn.Close()
 		
+		'''
+		wnd = sm.GetService('window').GetWindow('overview', decoClass=form.OverView)
+		if wnd:
+			wnd.SelfDestruct()
+		if session.solarsystemid:
+			sm.GetService('tactical').InitOverview()
 		wnd = sm.GetService('window').GetWindow('selecteditemview', decoClass=form.ActiveItem)
 		if wnd:
 			wnd.SelfDestruct()
 		if session.solarsystemid:
 			sm.GetService('tactical').InitSelectedItem()
+		'''
 		
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=108)
 		btn.OnClick = self.SaveLoadProbePositions
@@ -593,13 +597,26 @@ try:
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToBtn = btn
 		
-		btn = uix.GetBigButton(32, eve.LocalSvc("window").GetWindow("selecteditemview"), left=315, top=20)
+		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=370)
 		btn.OnClick = self.WatchWarpOff
 		btn.hint = "Watch!"
 		btn.sr.icon.LoadIcon('44_03')
 		self.sr.WatchBtn = btn
 		
-		btn = uix.GetBigButton(32, eve.LocalSvc("window").GetWindow("selecteditemview"), left=315, top=55)
+		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=402)
+		btn.OnClick = self.GetNearbyItem
+		btn.hint = "Show nearby item"
+		btn.sr.icon.LoadIcon('77_21')
+		self.sr.nearbyBtn = btn
+		
+		'''
+		btn = uix.GetBigButton(32, sm.GetService('window').GetWindow('selecteditemview'), left=315, top=20)
+		btn.OnClick = self.WatchWarpOff
+		btn.hint = "Watch!"
+		btn.sr.icon.LoadIcon('44_03')
+		self.sr.WatchBtn = btn
+		
+		btn = uix.GetBigButton(32, sm.GetService('window').GetWindow('selecteditemview'), left=315, top=55)
 		btn.OnClick = self.GetNearbyItem
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
@@ -611,6 +628,7 @@ try:
 		self.hostileLabel.hint = "Click me!"
 		self.hostileLabel.strong = 1
 		self.UpdateCount()
+		'''
 
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
