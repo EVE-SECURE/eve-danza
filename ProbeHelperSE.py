@@ -33,7 +33,7 @@ try:
 	try:
 		old_remove_ball = sm.GetService('michelle').GetBallpark().RemoveBall
 
-		form.Scanner.ballsToTheWall = list()
+		form.OverView.ballsToTheWall = list()
 
 	except:
 		sm.GetService('gameui').Say("exception1")
@@ -104,40 +104,6 @@ try:
 		return count
 	
 	form.Scanner.GetHostileCount = GetHostileCount
-
-	@safetycheck
-	def MyUpdateCaption(self, startingup = 0, localEcho = 0):
-		if self.channelInitialized:
-			label = chat.GetDisplayName(self.channelID).split('\\')[-1]
-			label.replace('conversation', 'conv.')
-			label.replace('channel', 'ch.')
-			memberCount = sm.GetService('LSC').GetMemberCount(self.channelID)
-			if (memberCount != self.memberCount):
-				self.memberCount = memberCount
-			if ((type(self.channelID) == types.IntType) or (self.channelID[0] not in ('global', 'regionid', 'constellationid'))):
-				if (self.memberCount > 2):
-					label += (' [%d] [%d]' % (self.memberCount, form.Scanner.GetHostileCount(), ))
-			self.SetCaption(label)
-			
-
-	'''
-	try:
-		form.LSCChannel.UpdateCaption = MyUpdateCaption
-	except:
-		sm.GetService('gameui').Say('uh-oh')
-	'''
-		
-	@safetycheck
-	def TryGetInvItem(self, itemID):
-		if (eve.session.shipid is None):
-			return 
-		ship = eve.GetInventoryFromId(eve.session.shipid)
-		if ship:
-			for invItem in ship.List():
-				if (invItem.itemID == itemID):
-					return invItem
-	
-	form.Scanner.TryGetInvItem = TryGetInvItem
 	
 	@safetycheck
 	def GetNearbyItem(self, *args):
@@ -225,21 +191,26 @@ try:
 	
 	@safetycheck
 	def MyRemoveBall(ball, *args):
-		form.Scanner.ballsToTheWall.append(ball)
+		if len(form.OverView.ballsToTheWall) > 20:
+			return
+		if form.OverView.ballsToTheWall:
+			form.OverView.ballsToTheWall.append(ball)
 		return
+
 	
 	@safetycheck
 	def WatchWarpOff(self, *args):		
 		if uicore.uilib.Key(uiconst.VK_SHIFT):
 			sm.GetService('michelle').GetBallpark().RemoveBall = MyRemoveBall
+			sm.GetService('gameui').Say('Changed RemoveBall to my own')
 			return
 		
 		sm.GetService('michelle').GetBallpark().RemoveBall = old_remove_ball
-		for ball in form.Scanner.ballsToTheWall:
+		for ball in form.OverView.ballsToTheWall:
 			sm.GetService('michelle').GetBallpark().RemoveBall(ball)
-		form.Scanner.ballsToTheWall = list()
+		form.OverView.ballsToTheWall = list()
 		form.OverView.UpdateAll	
-
+		sm.GetService('gameui').Say('Reverted back to normal RemoveBall')
 		
 	
 	form.Scanner.WatchWarpOff = WatchWarpOff  
@@ -535,6 +506,13 @@ try:
 		self.HighlightGoodResults()
 		
 	form.Scanner.LoadResultList = MyLoadResultList
+	
+	@safetycheck
+	def Nuke(self, *args):
+		self.SendProbes (*args)
+		self.Analyze(*args)
+		
+	form.Scanner.Nuke = Nuke
 
 	@safetycheck
 	def MyApplyAttributes(self, attributes):
@@ -608,6 +586,12 @@ try:
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.nearbyBtn = btn
+		
+		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=440)
+		btn.OnClick = self.Nuke
+		btn.hint = "DECLOAK THE BITCH"
+		btn.sr.icon.LoadIcon('44_59')
+		self.sr.TwoInOneBtn = btn
 		
 		'''
 		btn = uix.GetBigButton(32, sm.GetService('window').GetWindow('selecteditemview'), left=315, top=20)
