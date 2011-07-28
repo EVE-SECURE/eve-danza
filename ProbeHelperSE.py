@@ -21,15 +21,15 @@ try:
 	import functools
 	import uiconst
 	import uicls
-	
+
 	import listentry
 	import state
-	
+
 	try:
 		old_apply_attributes
 	except NameError:
 		old_apply_attributes = form.Scanner.ApplyAttributes
-		
+
 	try:
 		old_remove_ball = sm.GetService('michelle').GetBallpark().RemoveBall
 
@@ -47,11 +47,11 @@ try:
 					print "exception in " + func.__name__
 					(exc, e, tb,) = sys.exc_info()
 					result2 = (''.join(format_exception(exc, e, tb)) + '\n').replace('\n', '<br>')
-					sm.GetService('gameui').MessageBox(result2, "ProbeHelper Exception") 
+					sm.GetService('gameui').MessageBox(result2, "ProbeHelper Exception")
 				except:
 					print "exception in safetycheck"
 		return wrapper
-	
+
 	@safetycheck
 	def GetLocal():
 		ret = None
@@ -60,7 +60,7 @@ try:
 			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
 				ret = channel
 		return ret
-			
+
 	@safetycheck
 	def UpdateCount(self):
 		#sm.GetService('gameui').Say('Hostile count updated!')
@@ -69,18 +69,18 @@ try:
 		hostilecount = neutCount + orangeCount + redCount
 		labeltext = ('HOSTILES [%d]' % hostilecount)
 		self.hostileLabel.text = labeltext
-	
+
 	form.Scanner.UpdateCount = UpdateCount
-	
+
 	@safetycheck
 	def GetHostileCount(self):
-		'''
+		"""
 		localChannel = None
 		for channelID in sm.GetService('LSC').channels.keys():
 			channel = sm.GetService('LSC').channels[channelID]
 			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
 				localChannel = channel
-		'''
+        """
 		mlist = self.localChannel.memberList
 		redCount = 0
 		blueCount = 0
@@ -102,16 +102,16 @@ try:
 		#sm.GetService('gameui').Say('Hostiles in local: %g' % (hostileCount, ))
 		count = (blueCount, neutCount, orangeCount, redCount, )
 		return count
-	
+
 	form.Scanner.GetHostileCount = GetHostileCount
-	
+
 	@safetycheck
 	def GetNearbyItem(self, *args):
 		currItem = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
 		bp = eve.LocalSvc("michelle").GetBallpark()
 		currBall = bp.GetBall(currItem)
 		shortestDist = currBall.surfaceDist
-		nearbyItem = currItem 
+		nearbyItem = currItem
 		nearbyBall = None
 		entryname = None
 		for itemID in bp.balls.keys():
@@ -121,7 +121,7 @@ try:
 				continue
 			if (itemID == currItem):
 				continue
-			'''
+			"""
 			slimItem = uix.GetBallparkRecord(itemID)
 			invItem = self.TryGetInvItem(itemID)
 			if slimItem:
@@ -138,7 +138,7 @@ try:
 				 const.groupHarvestableCloud,
 				 const.groupSecondarySun)) )):
 				continue
-			'''
+			"""
 			itemBall = bp.GetBall(itemID)
 			proximity = abs(currBall.surfaceDist - itemBall.surfaceDist)
 			if proximity < shortestDist:
@@ -162,19 +162,19 @@ try:
 			realdiststr = ''
 
 		sm.GetService('gameui').Say('Nearby Item is: %s, Distance is: %s' % (entryname, realdiststr, ))
-	
+
 	form.Scanner.GetNearbyItem = GetNearbyItem
 
 	@safetycheck
 	def MyAddTab(self):
 		ret = uix.NamePopup(mls.UI_CMD_ADD_TAB, mls.UI_INFLIGHT_TYPELABEL, maxLength=15)
 		if not ret:
-			return 
+			return
 		numTabs = 8
 		tabsettings = settings.user.overview.Get('tabsettings', {})
 		if (len(tabsettings) >= numTabs):
 			eve.Message('TooManyTabs', {'numTabs': numTabs})
-			return 
+			return
 		if (len(tabsettings) == 0):
 			newKey = 0
 		else:
@@ -184,44 +184,44 @@ try:
 		 'overview': None,
 		 'bracket': None}
 		if self.destroyed:
-			return 
+			return
 		self.OnOverviewTabChanged(tabsettings, oldtabsettings)
-		
+
 	form.OverView.AddTab = MyAddTab
-	
+
 	@safetycheck
-	def MyRemoveBall(ball, *args):
+	def MyRemoveBall(self, ball, *args):
 		if len(form.OverView.ballsToTheWall) > 20:
 			return
 		if form.OverView.ballsToTheWall:
 			form.OverView.ballsToTheWall.append(ball)
 		return
 
-	
+
 	@safetycheck
-	def WatchWarpOff(self, *args):		
+	def WatchWarpOff(self, *args):
 		if uicore.uilib.Key(uiconst.VK_SHIFT):
 			sm.GetService('michelle').GetBallpark().RemoveBall = MyRemoveBall
 			sm.GetService('gameui').Say('Changed RemoveBall to my own')
 			return
-		
+
 		sm.GetService('michelle').GetBallpark().RemoveBall = old_remove_ball
 		for ball in form.OverView.ballsToTheWall:
 			sm.GetService('michelle').GetBallpark().RemoveBall(ball)
 		form.OverView.ballsToTheWall = list()
-		form.OverView.UpdateAll	
+		form.OverView.UpdateAll
 		sm.GetService('gameui').Say('Reverted back to normal RemoveBall')
-		
-	
-	form.Scanner.WatchWarpOff = WatchWarpOff  
-	
+
+
+	form.Scanner.WatchWarpOff = WatchWarpOff
+
 	@safetycheck
 	def ContractProbes(self, *args):
 		scanSvc = sm.GetService("scanSvc")
 		probeData = [(k,v) for (k,v) in scanSvc.GetProbeData().iteritems() if v.state == const.probeStateIdle]
 		if len(probeData) == 0:
 			return
-		
+
 		avg = sum( (v.destination for (k,v) in probeData), Vector3() ) / len(probeData)
 		min_range = min( v.rangeStep for (k,v) in probeData )
 		if (min_range <= 1):
@@ -247,7 +247,7 @@ try:
 		max_range = max( v.rangeStep for (k,v) in probeData )
 		if (max_range >= const.scanProbeNumberOfRangeSteps):
 			return
-		
+
 		for (k,v) in probeData:
 			destination = (2 * v.destination) - avg
 			scanSvc.SetProbeDestination(k, destination)
@@ -255,9 +255,9 @@ try:
 
 		self.UpdateProbeSpheres()
 
-	form.Scanner.ExpandProbes = ExpandProbes        
-			
-		
+	form.Scanner.ExpandProbes = ExpandProbes
+
+
 	@safetycheck
 	def SendProbes(self, *args):
 		selected = self.sr.resultscroll.GetSelected()
@@ -267,7 +267,7 @@ try:
 		try:
 			itemid = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
 			ball= eve.LocalSvc("michelle").GetBallpark().GetBall(itemid)
-			target2= Vector3(ball.x,ball.y, ball.z)		
+			target2= Vector3(ball.x,ball.y, ball.z)
 		except:
 			sm.GetService('gameui').Say("No active item, going to scan results")
 		if selected:
@@ -285,7 +285,7 @@ try:
 			for p in points:
 				target += p
 			target /= len(points)
-		
+
 		if uicore.uilib.Key(uiconst.VK_SHIFT) or (not selected):
 			target = target2
 
@@ -299,7 +299,7 @@ try:
 		for (k,v) in probeData:
 			destination = target + v.destination - avg
 			scanSvc.SetProbeDestination(k, destination)
-			
+
 		self.UpdateProbeSpheres()
 
 	form.Scanner.SendProbes = SendProbes
@@ -316,16 +316,16 @@ try:
 		if uicore.uilib.Key(uiconst.VK_SHIFT):
 			settings.public.ui.Set(settingsName, [(v.destination, v.rangeStep) for (k,v) in probeData])
 			return
-		
+
 		pos = settings.public.ui.Get(settingsName, [])
 		if( pos == [] ):
 			return
-			
+
 		for ((probekey, probevalue), (dest,rstep)) in zip(probeData, pos):
 			scanSvc.SetProbeDestination(probekey, dest)
 			scanSvc.SetProbeRangeStep(probekey, rstep)
 		self.UpdateProbeSpheres()
-			
+
 	form.Scanner.SaveLoadProbePositions = SaveLoadProbePositions
 
 	@safetycheck
@@ -368,7 +368,7 @@ try:
 		for (k,v) in probeData:
 			destination = target + v.destination - avg
 			scanSvc.SetProbeDestination(k, destination)
-			
+
 		self.UpdateProbeSpheres()
 
 	form.Scanner.GoToLocations = GoToLocations
@@ -390,17 +390,17 @@ try:
 		GoToLocations(self, 3, args)
 
 	form.Scanner.GoToLocations3 = GoToLocations3
-	
+
 	@safetycheck
 	def MyLoadResultList(self):
 		if ((self is None) or self.destroyed):
-			return 
+			return
 		scanSvc = sm.GetService('scanSvc')
 		currentScan = scanSvc.GetCurrentScan()
 		scanningProbes = scanSvc.GetScanningProbes()
 		results = scanSvc.GetScanResults()
 		if self.destroyed:
-			return 
+			return
 		self.CleanupResultShapes()
 		resultlist = []
 		if (currentScan and (blue.os.TimeDiffInMs(currentScan.startTime) < currentScan.duration)):
@@ -417,7 +417,7 @@ try:
 		elif results:
 			bp = sm.GetService('michelle').GetBallpark(doWait=True)
 			if (bp is None):
-				return 
+				return
 			ego = bp.balls[bp.ego]
 			myPos = Vector3(ego.x, ego.y, ego.z)
 			for result in results:
@@ -504,23 +504,23 @@ try:
 		self.sr.resultscroll.Load(contentList=resultlist)
 		self.sr.resultscroll.ShowHint('')
 		self.HighlightGoodResults()
-		
+
 	form.Scanner.LoadResultList = MyLoadResultList
-	
+
 	@safetycheck
 	def Nuke(self, *args):
 		self.SendProbes (*args)
 		self.Analyze(*args)
-		
+
 	form.Scanner.Nuke = Nuke
 
 	@safetycheck
 	def MyApplyAttributes(self, attributes):
 		old_apply_attributes(self, attributes)
-		
+
 		self.sr.destroyBtn.Close()
-		
-		'''
+
+		"""
 		wnd = sm.GetService('window').GetWindow('overview', decoClass=form.OverView)
 		if wnd:
 			wnd.SelfDestruct()
@@ -531,8 +531,8 @@ try:
 			wnd.SelfDestruct()
 		if session.solarsystemid:
 			sm.GetService('tactical').InitSelectedItem()
-		'''
-		
+		"""
+
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=108)
 		btn.OnClick = self.SaveLoadProbePositions
 		btn.hint = "SHIFT-CLICK TO SAVE PROBES, CLICK TO LOAD PROBES"
@@ -544,7 +544,7 @@ try:
 		btn.hint = "CONTRACT PROBES"
 		btn.sr.icon.LoadIcon('44_43')
 		self.sr.contractBtn = btn
-	 
+
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=184)
 		btn.OnClick = self.ExpandProbes
 		btn.hint = "EXPAND PROBES"
@@ -574,45 +574,45 @@ try:
 		btn.hint = "SAVE/SEND TO LOCATION3"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToBtn = btn
-		
+
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=370)
 		btn.OnClick = self.WatchWarpOff
 		btn.hint = "Watch!"
 		btn.sr.icon.LoadIcon('44_03')
 		self.sr.WatchBtn = btn
-		
+
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=402)
 		btn.OnClick = self.GetNearbyItem
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.nearbyBtn = btn
-		
+
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=440)
 		btn.OnClick = self.Nuke
 		btn.hint = "DECLOAK THE BITCH"
 		btn.sr.icon.LoadIcon('44_59')
 		self.sr.TwoInOneBtn = btn
-		
-		'''
+
+		"""
 		btn = uix.GetBigButton(32, sm.GetService('window').GetWindow('selecteditemview'), left=315, top=20)
 		btn.OnClick = self.WatchWarpOff
 		btn.hint = "Watch!"
 		btn.sr.icon.LoadIcon('44_03')
 		self.sr.WatchBtn = btn
-		
+
 		btn = uix.GetBigButton(32, sm.GetService('window').GetWindow('selecteditemview'), left=315, top=55)
 		btn.OnClick = self.GetNearbyItem
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.nearbyBtn = btn
-		
+
 		self.localChannel = GetLocal()
 		self.hostileLabel = uicls.Label(text='', parent=self.localChannel.window, left=90, top=3, fontsize=11, mousehilite=1, letterspace=1, state=uiconst.UI_NORMAL)
 		self.hostileLabel.OnClick = (self.UpdateCount, )
 		self.hostileLabel.hint = "Click me!"
 		self.hostileLabel.strong = 1
 		self.UpdateCount()
-		'''
+		"""
 
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
