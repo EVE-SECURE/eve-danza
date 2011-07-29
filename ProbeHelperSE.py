@@ -15,13 +15,15 @@ try:
 	import sys
 	import geo2
 	import maputils
+	import copy
+	import form.Scanner
 	from math import pi, cos, sin, sqrt
 	from foo import Vector3
 	from mapcommon import SYSTEMMAP_SCALE
+	from traceback import format_exception
 	import functools
 	import uiconst
 	import uicls
-
 	import listentry
 	import state
 
@@ -575,6 +577,7 @@ try:
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToBtn = btn
 
+		"""
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=370)
 		btn.OnClick = self.WatchWarpOff
 		btn.hint = "Watch!"
@@ -586,8 +589,9 @@ try:
 		btn.hint = "Show nearby item"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.nearbyBtn = btn
+		"""
 
-		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=440)
+		btn = uix.GetBigButton(40, self.sr.systemTopParent, left=400)
 		btn.OnClick = self.Nuke
 		btn.hint = "DECLOAK THE BITCH"
 		btn.sr.icon.LoadIcon('44_59')
