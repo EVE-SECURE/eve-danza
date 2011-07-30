@@ -16,7 +16,6 @@ try:
 	import geo2
 	import maputils
 	import copy
-	import form.Scanner
 	from math import pi, cos, sin, sqrt
 	from foo import Vector3
 	from mapcommon import SYSTEMMAP_SCALE

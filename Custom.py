@@ -93,7 +93,7 @@ try:
 				elif (channel.window and (channel.channeID[0] == 'corpid')):
 					tempStr = 'Channel: %s' % channel.channelID
 					reportStr = reportStr + tempStr + '\n'
-					"""
+				"""
 
 			if (reportStr):
 				sm.GetService('gameui').Say(reportStr)
@@ -110,6 +110,7 @@ try:
 			sm.GetService('gameui').Say(m)
 		except:
 			pass
+
 	@safetycheck
 	def GetLocal(*args):
 		form.Scanner.localChannel = sm.GetService('focus').GetFocusChannel()
@@ -227,7 +228,9 @@ try:
 			neutCount = 0
 
 			for charID in mlist.keys():
-				standing = sm.GetService('standing').GetStanding(eve.session.corpid, charID)
+				if (eve.session.charid == charID):
+					continue
+				standing = sm.GetService('standing').GetStanding(eve.session.allianceid, charID)
 				if (standing >= 0.5):
 					blueCount = blueCount + 1
 				elif (standing < 0.5 and standing >= 0.0):
@@ -250,8 +253,11 @@ try:
 			reportNum = 0
 			for entry in entries:
 				iterNum += 1
-				standing = sm.GetService('standing').GetStanding(eve.session.corpid, entry.charID)
-				if (standing >= 0.5) or (entry.charID == eve.session.charid):
+				corpCharInfo = sm.GetService('corp').GetInfoWindowDataForChar(entry.charID, 1)
+				corpID = corpCharInfo.corpID
+				allianceID = corpCharInfo.allianceID
+				standing = sm.GetService('standing').GetStanding(eve.session.allianceid, entry.charID)
+				if (standing >= 0.5) or (entry.charID == eve.session.charid) or (corpID == eve.session.corpid) or (allianceID == eve.session.allianceid):
 					continue
 				else:
 					reportNum += 1
@@ -259,20 +265,18 @@ try:
 					form.Scanner.reportChannel.input.InsertText('|\r')
 				link = ((('showinfo:' + str(entry.info.typeID)) + '//') + str(entry.charID))
 				form.Scanner.reportChannel.input.AddLink(entry.info.name, link)
-				corpCharInfo = sm.GetService('corp').GetInfoWindowDataForChar(entry.charID, 1)
-				corpID = corpCharInfo.corpID
-				allianceID = corpCharInfo.allianceID
 				ids = ''
 				if allianceID:
 					ids = cfg.eveowners.Get(allianceID).name
 				else:
 					ids = cfg.eveowners.Get(corpID).name
 				form.Scanner.reportChannel.input.InsertText(' - %s\r' % ids)
-				if (iterNum == len(entries)):
+				if (iterNum == len(entries)) or (reportNum > 50):
 					form.Scanner.reportChannel.input.InsertText('---')
 				if ((reportNum % 3) == 0) or (iterNum == len(entries)):
 					form.Scanner.reportChannel.InputKeyUp()
 					blue.pyos.synchro.Sleep(randomPause(800,1100))
+
 			msg('Local report done!')
 
 		except:
