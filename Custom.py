@@ -31,6 +31,9 @@ try:
 	from mapcommon import SYSTEMMAP_SCALE
 	import state
 	import random
+	import spaceObject
+	import blue
+	import timecurves
 
 	try:
 		form.Scanner.localChannel = None
@@ -53,24 +56,19 @@ try:
 					print "exception in safetycheck"
 		return wrapper
 
-	@safetycheck
-	def DoIt(*args):
-		try:
-			count = 0
-			while(count<10):
-				blue.pyos.synchro.Sleep(5000)
-				count = (count + 1)
-				sm.GetService('gameui').Say('We have looped %g times' % count)
-		except:
-			sm.GetService('gameui').Say('error!')
+	"""
+	treading in dangerous waters!!!
+	"""
 
-	@safetycheck
-	def factorial():
-		c = 100
-		T = 1
-		for i in xrange(1, c):
-			T *= i
-		return T
+	try:
+		service.Service.LogMethodCall = service.Service.DudLogger
+		service.Service.LogInfo = service.Service.DudLogger
+		service.Service.LogWarn = service.Service.DudLogger
+		service.Service.LogError = service.Service.DudLogger
+		service.Service.LogNotice = service.Service.DudLogger
+	except:
+		msg('danger!!danger!!')
+
 
 	@safetycheck
 	def Report(*args):
@@ -221,24 +219,47 @@ try:
 			link = ('showinfo:5' + '//' + str(solarSystemID))
 			form.Scanner.reportChannel.input.AddLink(solarSystemName, link)
 
-			mlist = form.Scanner.localChannel2.memberList
+			entries = form.Scanner.localChannel2.window.userlist.GetNodes()
 			redCount = 0
 			blueCount = 0
 			orangeCount = 0
 			neutCount = 0
+			hostileList = list()
+			count = 0
 
-			for charID in mlist.keys():
+			for entry in entries:
+				charID = entry.charID
+				corpCharInfo = sm.GetService('corp').GetInfoWindowDataForChar(charID, 1)
+				corpID = corpCharInfo.corpID
+				allianceID = corpCharInfo.allianceID
+
 				if (eve.session.charid == charID):
 					continue
-				standing = sm.GetService('standing').GetStanding(eve.session.allianceid, charID)
-				if (standing >= 0.5):
-					blueCount = blueCount + 1
+				myStandingID = None
+				if (eve.session.allianceid):
+					myStandingID = eve.session.allianceid
+				else:
+					myStandingID = eve.session.corpid
+				standing = sm.GetService('standing').GetStanding(myStandingID, charID)
+				if ((standing >= 0.5) or (eve.session.corpid == corpID) or ((eve.session.allianceid != None) and (eve.session.allianceid == allianceID))):
+					blueCount += 1
 				elif (standing < 0.5 and standing >= 0.0):
-					neutCount = neutCount + 1
+					neutCount += 1
+					hostileList.append(entry)
+					count += 1
+					msg('hostiles detected %d' % count)
 				elif (standing < 0.0 and standing > -1.0):
-					orangeCount = orangeCount + 1
+					orangeCount += 1
+					hostileList.append(entry)
+					count += 1
+					msg('hostiles detected %d' % count)
 				else:
 					redCount = redCount + 1
+					hostileList.append(entry)
+					count += 1
+					msg('hostiles detected %d' % count)
+				if count >= 50:
+					break
 
 			blueText = '%d blues' % blueCount
 			neutText = '%d neuts' % neutCount
@@ -246,36 +267,33 @@ try:
 			solarSystemText = ': %s, %s, %s' % (blueText, neutText, redText)
 			form.Scanner.reportChannel.input.InsertText('%s\r' % solarSystemText)
 			form.Scanner.reportChannel.InputKeyUp()
-			blue.pyos.synchro.Sleep(randomPause(1000,1500))
 
-			entries = form.Scanner.localChannel.userlist.GetNodes()
-			iterNum = 0
-			reportNum = 0
-			for entry in entries:
-				iterNum += 1
-				corpCharInfo = sm.GetService('corp').GetInfoWindowDataForChar(entry.charID, 1)
-				corpID = corpCharInfo.corpID
-				allianceID = corpCharInfo.allianceID
-				standing = sm.GetService('standing').GetStanding(eve.session.allianceid, entry.charID)
-				if (standing >= 0.5) or (entry.charID == eve.session.charid) or (corpID == eve.session.corpid) or (allianceID == eve.session.allianceid):
-					continue
-				else:
-					reportNum += 1
-				if (reportNum % 3) == 1:
-					form.Scanner.reportChannel.input.InsertText('|\r')
-				link = ((('showinfo:' + str(entry.info.typeID)) + '//') + str(entry.charID))
-				form.Scanner.reportChannel.input.AddLink(entry.info.name, link)
-				ids = ''
-				if allianceID:
-					ids = cfg.eveowners.Get(allianceID).name
-				else:
-					ids = cfg.eveowners.Get(corpID).name
-				form.Scanner.reportChannel.input.InsertText(' - %s\r' % ids)
-				if (iterNum == len(entries)) or (reportNum > 50):
-					form.Scanner.reportChannel.input.InsertText('---')
-				if ((reportNum % 3) == 0) or (iterNum == len(entries)):
-					form.Scanner.reportChannel.InputKeyUp()
-					blue.pyos.synchro.Sleep(randomPause(800,1100))
+			if len(hostileList) > 0:
+				blue.pyos.synchro.Sleep(randomPause(1000,1500))
+				iterNum = 0
+				reportLimit = 15
+				for entry in hostileList:
+					iterNum += 1
+					corpCharInfo = sm.GetService('corp').GetInfoWindowDataForChar(entry.charID, 1)
+					corpID = corpCharInfo.corpID
+					allianceID = corpCharInfo.allianceID
+					if (iterNum % 3) == 1:
+						form.Scanner.reportChannel.input.InsertText('|\r')
+					link = ((('showinfo:' + str(entry.info.typeID)) + '//') + str(entry.charID))
+					form.Scanner.reportChannel.input.AddLink(entry.info.name, link)
+					ids = ''
+					if allianceID:
+						ids = cfg.eveowners.Get(allianceID).name
+					else:
+						ids = cfg.eveowners.Get(corpID).name
+					form.Scanner.reportChannel.input.InsertText('-%s\r' % ids)
+					if (iterNum == len(hostileList)) or (iterNum >= reportLimit):
+						form.Scanner.reportChannel.input.InsertText('-(%d/%d)-'%(iterNum, len(hostileList)))
+						form.Scanner.reportChannel.InputKeyUp()
+						break
+					if ((iterNum % 3) == 0):
+						form.Scanner.reportChannel.InputKeyUp()
+						blue.pyos.synchro.Sleep(randomPause(800,1100))
 
 			msg('Local report done!')
 
@@ -286,8 +304,8 @@ try:
 		pane = sm.GetService('window').GetWindow("New", create=1)
 		pane.windowID = "TestWindow"
 		btn = uix.GetBigButton(50, pane.sr.main, left=0)
-		btn.OnClick = GetLocal
-		btn.hint = "GetLocal"
+		btn.OnClick = ReportLocal
+		btn.hint = "ReportLocal"
 		btn.sr.icon.LoadIcon('44_02')
 		pane.sr.FocusBtn = btn
 
