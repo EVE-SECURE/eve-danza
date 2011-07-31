@@ -30,11 +30,11 @@ try:
 	import uicls
 
 	try:
-		old_apply_attributes
+		Scanner_old_apply_attributes
 	except NameError:
-		old_apply_attributes = form.Scanner.ApplyAttributes
+		Scanner_old_apply_attributes = form.Scanner.ApplyAttributes
 	try:
-		distData = dict()
+		form.Scanner.distData = dict()
 	except:
 		sm.GetService('gameui').Say("exception")
 
@@ -47,35 +47,37 @@ try:
 					print "exception in " + func.__name__
 					(exc, e, tb,) = sys.exc_info()
 					result2 = (''.join(format_exception(exc, e, tb)) + '\n').replace('\n', '<br>')
-					sm.GetService('gameui').MessageBox(result2, "Dscanner Exception") 
+					sm.GetService('gameui').MessageBox(result2, "Dscanner Exception")
 				except:
 					print "exception in safetycheck"
 		return wrapper
-	
+
 	@safetycheck
 	def FlushDistData(self, *args):
-		distData.clear()
+		form.Scanner.distData.clear()
 		sm.GetService('gameui').Say("Distance data flushed")
-		
+
 	form.Scanner.FlushDistData = FlushDistData
 
 	@safetycheck
 	def GetGetGet(self, *args):
 		(config, value,) = args
 		self.dir_rangeinput.SetValue(value*14959800)
+		if hasattr(self, 'dir_rangeinput2'):
+			self.dir_rangeinput2.SetValue(value*14959800)
 
 	form.Scanner.GetGetGet = GetGetGet
 
 	@safetycheck
 	def SetSetSet(self, *args):
-		uthread.new(self.NewScan)
+		uthread.new(self.DirectionSearch)
 
 	form.Scanner.SetSetSet = SetSetSet
 
 	@safetycheck
 	def NewScan(self, *args):
 		if ((self is None) or (self.destroyed or self.busy)):
-			return 
+			return
 		self.busy = True
 		self.ShowLoad()
 		self.scanresult = []
@@ -121,7 +123,7 @@ try:
 		self.busy = False
 		self.HideLoad()
 
-	form.Scanner.NewScan = NewScan
+	form.Scanner.DirectionSearch = NewScan
 
 	@safetycheck
 	def NewShowResult(self, *args):
@@ -143,7 +145,7 @@ try:
 			sortdist = []
 			for (slimItem, ball, celestialRec,) in self.scanresult:
 				if ((self is None) or self.destroyed):
-					return 
+					return
 				dist = 0
 				if slimItem:
 					typeinfo = cfg.invtypes.Get(slimItem.typeID)
@@ -169,20 +171,22 @@ try:
 				if (ball is not None):
 					dist = ball.surfaceDist
 					diststr = util.FmtDist(dist, maxdemicals=1)
+					finaldiststr = diststr
 				else:
 					maxDist = settings.user.ui.Get('dir_scanrange')*1000
 					dist = maxDist
 					lastDist = None
 					dictName = "%d" % itemID
 					try:
-						lastDist = distData[dictName]
+						lastDist = form.Scanner.distData[dictName]
 					except:
 						lastDist = maxDist
 					if dist > lastDist:
 						dist = lastDist
 					else:
-						distData[dictName] = dist
+						form.Scanner.distData[dictName] = dist
 					diststr = util.FmtDist(dist, maxdemicals=1)
+					finaldiststr = '~%s' % diststr
 				groupID = cfg.invtypes.Get(typeID).groupID
 				if not (eve.session.role & (service.ROLE_GML | service.ROLE_WORLDMOD)):
 					if (groupID == const.groupCloud):
@@ -191,7 +195,7 @@ try:
 				data = util.KeyVal()
 				data.label = ('%s (%d)<t>%s<t>%s' % (entryname, (itemID%1000000000000),
 				 typeinfo.name,
-				 diststr))
+				 finaldiststr))
 				data.Set(('sort_%s' % mls.UI_GENERIC_DISTANCESHORT), dist)
 				data.columnID = 'directionalResultGroupColumn'
 				data.result = result
@@ -217,7 +221,7 @@ try:
 
 	@safetycheck
 	def MyApplyAttributes(self, attributes):
-		old_apply_attributes(self, attributes)
+		Scanner_old_apply_attributes(self, attributes)
 
 		self.sr.destroyBtn.Close()
 		btn = uix.GetBigButton(32, self.sr.useoverview.parent.parent, left=250 )
@@ -228,9 +232,9 @@ try:
 
 		dslider = uix.GetSlider('slider', self.sr.useoverview.parent.parent, 'scandist', 1, 14.4, 'Range', '', uiconst.TOPRIGHT, 150, 18, 0, 15, getvaluefunc=self.GetGetGet, endsliderfunc=self.SetSetSet, increments=(1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.4), underlay=0)
 
-		self.dir_rangeinput = uicls.SinglelineEdit(name='edit2', parent=self.sr.useoverview.parent.parent, ints=(1, None), align=uiconst.TOPRIGHT, pos=(5, 36, 78, 0), maxLength=(len(str(sys.maxint))*2))
-		self.dir_rangeinput.SetValue(settings.user.ui.Get('dir_scanrange', 1000))
-		self.dir_rangeinput.OnReturn = self.DirectionSearch
+		self.dir_rangeinput2 = uicls.SinglelineEdit(name='edit2', parent=self.sr.useoverview.parent.parent, ints=(1, None), align=uiconst.TOPRIGHT, pos=(5, 36, 78, 0), maxLength=(len(str(sys.maxint))*2))
+		self.dir_rangeinput2.SetValue(settings.user.ui.Get('dir_scanrange', 1000))
+		self.dir_rangeinput2.OnReturn = self.DirectionSearch
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
 

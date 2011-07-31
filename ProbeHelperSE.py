@@ -27,17 +27,9 @@ try:
 	import state
 
 	try:
-		old_apply_attributes
+		Scanner_old_apply_attributes
 	except NameError:
-		old_apply_attributes = form.Scanner.ApplyAttributes
-
-	try:
-		old_remove_ball = sm.GetService('michelle').GetBallpark().RemoveBall
-
-		form.OverView.ballsToTheWall = list()
-
-	except:
-		sm.GetService('gameui').Say("exception1")
+		Scanner_old_apply_attributes = form.Scanner.ApplyAttributes
 
 	def safetycheck(func):
 		def wrapper(*args, **kwargs):
@@ -52,119 +44,6 @@ try:
 				except:
 					print "exception in safetycheck"
 		return wrapper
-
-	@safetycheck
-	def GetLocal():
-		ret = None
-		for channelID in sm.GetService('LSC').channels.keys():
-			channel = sm.GetService('LSC').channels[channelID]
-			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
-				ret = channel
-		return ret
-
-	@safetycheck
-	def UpdateCount(self):
-		#sm.GetService('gameui').Say('Hostile count updated!')
-		count = (blueCount, neutCount, orangeCount, redCount, )= self.GetHostileCount()
-		sm.GetService('gameui').Say('Blue[%d] Neut[%d] Orange[%d] Red[%d]' % count)
-		hostilecount = neutCount + orangeCount + redCount
-		labeltext = ('HOSTILES [%d]' % hostilecount)
-		self.hostileLabel.text = labeltext
-
-	form.Scanner.UpdateCount = UpdateCount
-
-	@safetycheck
-	def GetHostileCount(self):
-		"""
-		localChannel = None
-		for channelID in sm.GetService('LSC').channels.keys():
-			channel = sm.GetService('LSC').channels[channelID]
-			if (channel.window and ((type(channel.channelID) is tuple) and (channel.channelID[0][0] == 'solarsystemid2'))):
-				localChannel = channel
-        """
-		mlist = self.localChannel.memberList
-		redCount = 0
-		blueCount = 0
-		orangeCount = 0
-		neutCount = 0
-		try:
-			for charID in mlist.keys():
-				standing = sm.GetService('standing').GetStanding(eve.session.charid, charID)
-				if (standing >= 0.5):
-					blueCount = blueCount + 1
-				elif (standing < 0.5 and standing >= 0.0):
-					neutCount = neutCount + 1
-				elif (standing < 0.0 and standing > -1.0):
-					orangeCount = orangeCount + 1
-				else:
-					redCount = redCount + 1
-		except:
-			sm.GetService('gameui').Say('oops')
-		#sm.GetService('gameui').Say('Hostiles in local: %g' % (hostileCount, ))
-		count = (blueCount, neutCount, orangeCount, redCount, )
-		return count
-
-	form.Scanner.GetHostileCount = GetHostileCount
-
-	@safetycheck
-	def GetNearbyItem(self, *args):
-		currItem = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
-		bp = eve.LocalSvc("michelle").GetBallpark()
-		currBall = bp.GetBall(currItem)
-		shortestDist = currBall.surfaceDist
-		nearbyItem = currItem
-		nearbyBall = None
-		entryname = None
-		for itemID in bp.balls.keys():
-			if bp is None:
-				break
-			if (itemID == eve.session.shipid):
-				continue
-			if (itemID == currItem):
-				continue
-			"""
-			slimItem = uix.GetBallparkRecord(itemID)
-			invItem = self.TryGetInvItem(itemID)
-			if slimItem:
-				categoryID = cfg.invtypes.Get(slimItem.typeID).categoryID
-				groupID = cfg.invtypes.Get(slimItem.typeID).groupID
-			elif invItem:
-				typeOb = cfg.invtypes.Get(invItem.typeID)
-				groupID = typeOb.groupID
-				categoryID = typeOb.categoryID
-			if not ((categoryID == const.categoryAsteroid) or ((groupID in (const.groupAsteroidBelt,
-				 const.groupPlanet,
-				 const.groupMoon,
-				 const.groupSun,
-				 const.groupHarvestableCloud,
-				 const.groupSecondarySun)) )):
-				continue
-			"""
-			itemBall = bp.GetBall(itemID)
-			proximity = abs(currBall.surfaceDist - itemBall.surfaceDist)
-			if proximity < shortestDist:
-				shortestDist = proximity
-				nearbyItem = itemID
-				nearbyBall = itemBall
-		slimItem = sm.GetService('michelle').GetItem(nearbyItem)
-		if slimItem:
-			entryname = uix.GetSlimItemName(slimItem)
-		if not entryname:
-			entryname = cfg.evelocations.Get(nearbyItem).name
-		realdiststr = None
-		try:
-			nearbyPos = Vector3(nearbyBall.x, nearbyBall.y, nearbyBall.z)
-			currPos = Vector3(currBall.x, currBall.y, currBall.z)
-			realDist = (nearbyPos - currPos).Length()
-			realdiststr = util.FmtDist(realDist, maxdemicals=1)
-		except:
-			pass
-		if not realdiststr:
-			realdiststr = ''
-
-		sm.GetService('gameui').Say('Nearby Item is: %s, Distance is: %s' % (entryname, realdiststr, ))
-
-	form.Scanner.GetNearbyItem = GetNearbyItem
 
 	@safetycheck
 	def MyAddTab(self):
@@ -189,32 +68,6 @@ try:
 		self.OnOverviewTabChanged(tabsettings, oldtabsettings)
 
 	form.OverView.AddTab = MyAddTab
-
-	@safetycheck
-	def MyRemoveBall(self, ball, *args):
-		if len(form.OverView.ballsToTheWall) > 20:
-			return
-		if form.OverView.ballsToTheWall:
-			form.OverView.ballsToTheWall.append(ball)
-		return
-
-
-	@safetycheck
-	def WatchWarpOff(self, *args):
-		if uicore.uilib.Key(uiconst.VK_SHIFT):
-			sm.GetService('michelle').GetBallpark().RemoveBall = MyRemoveBall
-			sm.GetService('gameui').Say('Changed RemoveBall to my own')
-			return
-
-		sm.GetService('michelle').GetBallpark().RemoveBall = old_remove_ball
-		for ball in form.OverView.ballsToTheWall:
-			sm.GetService('michelle').GetBallpark().RemoveBall(ball)
-		form.OverView.ballsToTheWall = list()
-		form.OverView.UpdateAll
-		sm.GetService('gameui').Say('Reverted back to normal RemoveBall')
-
-
-	form.Scanner.WatchWarpOff = WatchWarpOff
 
 	@safetycheck
 	def ContractProbes(self, *args):
@@ -517,22 +370,9 @@ try:
 
 	@safetycheck
 	def MyApplyAttributes(self, attributes):
-		old_apply_attributes(self, attributes)
+		Scanner_old_apply_attributes(self, attributes)
 
 		self.sr.destroyBtn.Close()
-
-		"""
-		wnd = sm.GetService('window').GetWindow('overview', decoClass=form.OverView)
-		if wnd:
-			wnd.SelfDestruct()
-		if session.solarsystemid:
-			sm.GetService('tactical').InitOverview()
-		wnd = sm.GetService('window').GetWindow('selecteditemview', decoClass=form.ActiveItem)
-		if wnd:
-			wnd.SelfDestruct()
-		if session.solarsystemid:
-			sm.GetService('tactical').InitSelectedItem()
-		"""
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=108)
 		btn.OnClick = self.SaveLoadProbePositions
@@ -576,46 +416,12 @@ try:
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToBtn = btn
 
-		"""
-		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=370)
-		btn.OnClick = self.WatchWarpOff
-		btn.hint = "Watch!"
-		btn.sr.icon.LoadIcon('44_03')
-		self.sr.WatchBtn = btn
-
-		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=402)
-		btn.OnClick = self.GetNearbyItem
-		btn.hint = "Show nearby item"
-		btn.sr.icon.LoadIcon('77_21')
-		self.sr.nearbyBtn = btn
-		"""
-
 		btn = uix.GetBigButton(40, self.sr.systemTopParent, left=400)
 		btn.OnClick = self.Nuke
 		btn.hint = "DECLOAK THE BITCH"
 		btn.sr.icon.LoadIcon('44_59')
 		self.sr.TwoInOneBtn = btn
 
-		"""
-		btn = uix.GetBigButton(32, sm.GetService('window').GetWindow('selecteditemview'), left=315, top=20)
-		btn.OnClick = self.WatchWarpOff
-		btn.hint = "Watch!"
-		btn.sr.icon.LoadIcon('44_03')
-		self.sr.WatchBtn = btn
-
-		btn = uix.GetBigButton(32, sm.GetService('window').GetWindow('selecteditemview'), left=315, top=55)
-		btn.OnClick = self.GetNearbyItem
-		btn.hint = "Show nearby item"
-		btn.sr.icon.LoadIcon('77_21')
-		self.sr.nearbyBtn = btn
-
-		self.localChannel = GetLocal()
-		self.hostileLabel = uicls.Label(text='', parent=self.localChannel.window, left=90, top=3, fontsize=11, mousehilite=1, letterspace=1, state=uiconst.UI_NORMAL)
-		self.hostileLabel.OnClick = (self.UpdateCount, )
-		self.hostileLabel.hint = "Click me!"
-		self.hostileLabel.strong = 1
-		self.UpdateCount()
-		"""
 
 
 	form.Scanner.ApplyAttributes = MyApplyAttributes
