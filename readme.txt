@@ -5,13 +5,14 @@ This is the Eve Danza injection suite. Over time, I will update the included scr
 The current scripts and their features:
 
 ScanHelper:
-- Improved upon the original ProbeHelper by wibiti
+- Improved upon the original ProbeHelper by wibiti and spheremonkey
 - Averaging results on multiple selections (instead of going to the first)
 - Save/load probe positions; shift click to save result location, and control click to save current probe position, left-click to send probes to the saved location
 - Listing of ship types as soon as possible for combat scanner (hidden by default)
 - Send probes to active item
 - Added slider to adjust d-scan range (from 1AU to 14.4AU, in .5 steps)
 - Distance approximation; the script will save the last max distance for any given result, so that after scanning at various ranges the results have their distance approximated
+- "Flush" button clears stored existing distances
 - Display of itemID in parenthesese behind item name
 
 ActiveItemHelper:
