@@ -165,6 +165,30 @@ try:
 		except:
 			msg('error')
 
+	@safetycheck
+	def DisableLog(*args):
+		try:
+			sm.LogMethodCall = DudLogger
+			count = 0
+			for each in sm.services.keys():
+				KillLogInfo(sm.services[each])
+				count += 1
+			msg('disabled logging in %d services' % count)
+		except:
+			msg('error in DisableLog')
+
+	@safetycheck
+	def KillLogInfo(service):
+		try:
+			service.LogInfo = DudLogger
+			service.LogMethodCall = DudLogger
+		except:
+			msg('error in KillLogInfo')
+
+	@safetycheck
+	def DudLogger(self, *args, **keywords):
+		return
+
 	try:
 		pane = sm.GetService('window').GetWindow("Temp", create=1)
 		pane.windowID = "TempWindow"
@@ -180,6 +204,7 @@ try:
 		btn.sr.icon.LoadIcon('44_01')
 		pane.sr.Focus2Btn = btn
 
+		DisableLog()
 
 	except:
 		msg('bad inject')
