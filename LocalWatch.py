@@ -189,22 +189,146 @@ try:
 	def DudLogger(self, *args, **keywords):
 		return
 
+	@safetycheck
+	def MapMoveButton(*args):
+		try:
+			msg('mapping...')
+			sm.GetService('cmd')._UpdateMovement = MyMove
+		except:
+			msg('map error')
+
+	@safetycheck
+	def UnmapMoveButton(*args):
+		try:
+			msg('unmapping...')
+			sm.GetService('cmd')._UpdateMovement = old_UpdateMovement
+		except:
+			msg('unmap error')
+
+	@safetycheck
+	def MyMove(direction):
+		try:
+		 	#bp = sm.GetService('michelle').GetBallpark()
+			#rbp = sm.GetService('michelle').GetRemotePark()
+			#if bp is None or rbp is None:
+			#	return
+			#ownBall = bp.GetBall(eve.session.shipid)
+			if direction == const.MOVDIR_FORWARD:
+	   			msg('up')
+				d = trinity.TriVector(0.0, -1.0, 1.0)
+			elif direction == const.MOVDIR_BACKWARD:
+				msg('down')
+				d = trinity.TriVector(0.0, 1.0, 1.0)
+			elif direction == const.MOVDIR_LEFT:
+				msg('left')
+				d = trinity.TriVector(-1.0, 0.0, 1.0)
+			elif direction == const.MOVDIR_RIGHT:
+				msg('right')
+				d = trinity.TriVector(1.0, 0.0, 1.0)
+			#currentDirection = ownBall.GetQuaternionAt(blue.os.GetTime())
+			#direction.TransformQuaternion(currentDirection)
+			#rbp.GotoDirection(direction.x, direction.y, direction.z)
+		except:
+			msg('MyMove error')
+
+	class MyService(service.Service):
+		__guid__ = 'svc.MyService'
+		__servicename__ = 'MyService'
+		__displayname__ = 'My Service'
+
+		def __init__(self):
+			service.Service.__init__(self)
+			self.alive = base.AutoTimer(5000, self.Update)
+			sm.GetService('gameui').Say('MyService inited')
+			self.pane = None
+
+		def initPane(self):
+			self.pane = sm.GetService('window').GetWindow("Temp", create=1)
+			self.pane.windowID = "TempWindow"
+			btn = uix.GetBigButton(50, self.pane.sr.main, left=0)
+			btn.OnClick = ReportLocal
+			btn.hint = "Report Local"
+			btn.sr.icon.LoadIcon('44_02')
+			self.pane.sr.FocusBtn = btn
+
+			btn = uix.GetBigButton(50, self.pane.sr.main, left=50)
+			btn.OnClick = SetReport
+			btn.hint = "Set Report Channel"
+			btn.sr.icon.LoadIcon('44_01')
+			self.pane.sr.Focus2Btn = btn
+
+		def Update(self):
+			# add kill check in the future
+			pass
+
+		def Open(self):
+			if self.pane:
+				return
+			self.initPane()
+
+		def Close(self):
+			self.Reset()
+
+		def Reset(self):
+			if self.pane:
+				self.pane.Close()
+				del self.pane
+				self.pane = None
+
+	@safetycheck
+	def CreateIt(*args):
+		#create an instance of something
+		bottomline = sm.GetService('neocom').bottomline
+		if bottomline and hasattr(bottomline, "alive") and bottomline.alive:
+			msg('MyService already running!')
+		else:
+			sm.GetService('neocom').bottomline = MyService()
+
+	@safetycheck
+	def DestroyIt(*args):
+		#destroy an instance of something
+		del sm.GetService('neocom').bottomline
+		sm.GetService('neocom').bottomline = None
+		msg('MyService killed!')
+
+	@safetycheck
+	def ToggleIt(*args):
+		bottomline = sm.GetService('neocom').bottomline
+		if bottomline and hasattr(bottomline, 'alive') and bottomline.alive:
+			if bottomline.pane:
+				bottomline.Close()
+			else:
+				bottomline.Open()
+
+
+
 	try:
-		pane = sm.GetService('window').GetWindow("Temp", create=1)
-		pane.windowID = "TempWindow"
-		btn = uix.GetBigButton(50, pane.sr.main, left=0)
-		btn.OnClick = ReportLocal
-		btn.hint = "Report Local"
-		btn.sr.icon.LoadIcon('44_02')
-		pane.sr.FocusBtn = btn
+		"""
+		#DisableLog()
+		#sm.GetService('cmd').OpenUIDebugger()
 
-		btn = uix.GetBigButton(50, pane.sr.main, left=50)
-		btn.OnClick = SetReport
-		btn.hint = "Set Report Channel"
-		btn.sr.icon.LoadIcon('44_01')
-		pane.sr.Focus2Btn = btn
+		#old_UpdateMovement = sm.GetService('cmd')._UpdateMovement
+		#sm.GetService('mouseInput').OnDoubleClick = MyOnDoubleClick
+		"""
+		neocomwnd = sm.GetService('neocom').main
+		btn = uix.GetBigButton(32, neocomwnd, top=800)
+		btn.OnClick = CreateIt
+		btn.hint = ""
+		btn.sr.icon.LoadIcon('11_01')
+		createBtn = btn
 
-		DisableLog()
+		btn = uix.GetBigButton(32, neocomwnd, top=833)
+		btn.OnClick = DestroyIt
+		btn.hint = ""
+		btn.sr.icon.LoadIcon('11_02')
+		destroyBtn = btn
+
+		btn = uix.GetBigButton(32, neocomwnd, top=866)
+		btn.OnClick = ToggleIt
+		btn.hint = ""
+		btn.sr.icon.LoadIcon('11_03')
+		killBtn = btn
+
 
 	except:
 		msg('bad inject')
