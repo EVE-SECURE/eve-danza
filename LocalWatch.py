@@ -238,9 +238,13 @@ try:
 
 		def __init__(self):
 			service.Service.__init__(self)
-			self.alive = base.AutoTimer(5000, self.Update)
+			self.alive = base.AutoTimer(200, self.Update)
 			sm.GetService('gameui').Say('MyService inited')
 			self.pane = None
+			self.A_down = False
+			self.S_down= False
+			self.D_down= False
+			self.W_down= False
 
 		def initPane(self):
 			self.pane = sm.GetService('window').GetWindow("Temp", create=1)
@@ -259,7 +263,24 @@ try:
 
 		def Update(self):
 			# add kill check in the future
-			pass
+			self.A_down = False
+			self.S_down = False
+			self.D_down = False
+			self.W_down = False
+			ret = 'Keys down: '
+			if uicore.uilib.Key(uiconst.VK_A):
+				self.A_down = True
+				ret += ' A'
+			if uicore.uilib.Key(uiconst.VK_S):
+				self.S_down= True
+				ret += ' S'
+			if uicore.uilib.Key(uiconst.VK_D):
+				self.D_down= True
+				ret += ' D'
+			if uicore.uilib.Key(uiconst.VK_W):
+				self.W_down= True
+				ret += ' W'
+			msg(ret)
 
 		def Open(self):
 			if self.pane:
@@ -274,6 +295,11 @@ try:
 				self.pane.Close()
 				del self.pane
 				self.pane = None
+		def CleanUp(self):
+			del self.alive
+			self.alive = None
+			del self.pane
+			self.pane = None
 
 	@safetycheck
 	def CreateIt(*args):
@@ -287,6 +313,8 @@ try:
 	@safetycheck
 	def DestroyIt(*args):
 		#destroy an instance of something
+		if hasattr(sm.GetService('neocom').bottomline, 'alive'):
+			sm.GetService('neocom').bottomline.CleanUp()
 		del sm.GetService('neocom').bottomline
 		sm.GetService('neocom').bottomline = None
 		msg('MyService killed!')
