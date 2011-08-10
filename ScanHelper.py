@@ -164,6 +164,32 @@ try:
 	form.Scanner.SendProbes = SendProbes
 
 	@safetycheck
+	def CustomPosition(self, *args):
+		scanSvc = sm.GetService("scanSvc")
+		probeData = [(k,v) for (k,v) in scanSvc.GetProbeData().iteritems() if v.state == const.probeStateIdle]
+		if len(probeData) == 0:
+			return
+		avg = sum( (v.destination for (k,v) in probeData), Vector3() ) / len(probeData)
+		probePos = [
+			[0, 0, 0],
+			[-4000, 0, 0],
+			[4000, 0, 0],
+			[0, 0, -4000],
+			[0, 0, 4000],
+			[0, -4000, 0],
+			[0, 4000, 0],
+			[0, 0, 0],
+			]
+		i = 0
+		for (k,v) in probeData:
+			destination = Vector3(probePos[i][0], probePos[i][1], probePos[i][2]) + avg
+			scanSvc.SetProbeDestination(k, destination)
+			i += 1
+		self.UpdateProbeSpheres()
+
+	form.Scanner.CustomPosition = CustomPosition
+
+	@safetycheck
 	def SaveLoadProbePositions(self, *args):
 		scanSvc = sm.GetService("scanSvc")
 		probeData = [(k,v) for (k,v) in scanSvc.GetProbeData().iteritems() if v.state == const.probeStateIdle]
@@ -574,19 +600,25 @@ try:
 		btn.OnClick = self.GoToLocations1
 		btn.hint = "SEND/SAVE TO SLOT1"
 		btn.sr.icon.LoadIcon('77_21')
-		self.sr.GoToBtn = btn
+		self.sr.GoTo1Btn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=302)
 		btn.OnClick = self.GoToLocations2
 		btn.hint = "SEND/SAVE TO SLOT2"
 		btn.sr.icon.LoadIcon('77_21')
-		self.sr.GoToBtn = btn
+		self.sr.GoTo2Btn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=334)
 		btn.OnClick = self.GoToLocations3
 		btn.hint = "SEND/SAVE TO SLOT3"
 		btn.sr.icon.LoadIcon('77_21')
-		self.sr.GoToBtn = btn
+		self.sr.GoTo3Btn = btn
+
+		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=367)
+		btn.OnClick = self.CustomPosition
+		btn.hint = "Custom Probe Config"
+		btn.sr.icon.LoadIcon('77_21')
+		self.sr.GoToXBtn = btn
 
 		btn = uix.GetBigButton(40, self.sr.systemTopParent, left=400)
 		btn.OnClick = self.Nuke

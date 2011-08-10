@@ -29,6 +29,7 @@ try:
 	from math import pi, cos, sin, sqrt
 	from foo import Vector3
 	from mapcommon import SYSTEMMAP_SCALE
+	from traceback import format_exception
 	import state
 	import random
 	import spaceObject

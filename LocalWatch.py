@@ -29,6 +29,7 @@ try:
 	from math import pi, cos, sin, sqrt
 	from foo import Vector3
 	from mapcommon import SYSTEMMAP_SCALE
+	from traceback import format_exception
 	import state
 	import random
 	import spaceObject
@@ -50,9 +51,9 @@ try:
 					print "exception in " + func.__name__
 					(exc, e, tb,) = sys.exc_info()
 					result2 = (''.join(format_exception(exc, e, tb)) + '\n').replace('\n', '<br>')
-					sm.GetService('gameui').MessageBox(result2, "Caught Exception")
+					sm.GetService('gameui').MessageBox(result2, "ProbeHelper Exception")
 				except:
-					print "exception in safetycheck"
+					pass
 		return wrapper
 
 	@safetycheck
@@ -238,7 +239,7 @@ try:
 
 		def __init__(self):
 			service.Service.__init__(self)
-			self.alive = base.AutoTimer(200, self.Update)
+			self.alive = base.AutoTimer(1000, self.Update)
 			sm.GetService('gameui').Say('MyService inited')
 			self.pane = None
 			self.A_down = False
@@ -250,19 +251,20 @@ try:
 			self.pane = sm.GetService('window').GetWindow("Temp", create=1)
 			self.pane.windowID = "TempWindow"
 			btn = uix.GetBigButton(50, self.pane.sr.main, left=0)
-			btn.OnClick = ReportLocal
-			btn.hint = "Report Local"
+			btn.OnClick = ReportInfo
+			btn.hint = "ReportInfo"
 			btn.sr.icon.LoadIcon('44_02')
 			self.pane.sr.FocusBtn = btn
 
 			btn = uix.GetBigButton(50, self.pane.sr.main, left=50)
-			btn.OnClick = SetReport
-			btn.hint = "Set Report Channel"
+			btn.OnClick = TryBookmarkIt
+			btn.hint = "TryBookmarkIt"
 			btn.sr.icon.LoadIcon('44_01')
 			self.pane.sr.Focus2Btn = btn
 
 		def Update(self):
 			# add kill check in the future
+			"""
 			self.A_down = False
 			self.S_down = False
 			self.D_down = False
@@ -281,6 +283,8 @@ try:
 				self.W_down= True
 				ret += ' W'
 			msg(ret)
+			"""
+			pass
 
 		def Open(self):
 			if self.pane:
@@ -328,6 +332,68 @@ try:
 			else:
 				bottomline.Open()
 
+	@safetycheck
+	def TryGetInvItem(itemID):
+	    if eve.session.shipid is None:
+	        return
+	    ship = eve.GetInventoryFromId(eve.session.shipid)
+	    if ship:
+	        for invItem in ship.List():
+	            if invItem.itemID == itemID:
+	                return invItem
+	@safetycheck
+	def GetItem(itemID):
+	    item = uix.GetBallparkRecord(itemID)
+	    if not item:
+	        item = TryGetInvItem(itemID)
+	    return item
+
+	@safetycheck
+	def ReportInfo(*args):
+		itemID = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
+		if itemID == None:
+			return
+		slimItem = GetItem(itemID)
+
+		bp = sm.GetService('michelle').GetBallpark()
+		if bp is None:
+		    return
+		slimItem = bp.GetInvItem(session.shipid)
+		if slimItem is None:
+		    return
+
+		# temp code
+
+		typeID = slimItem.typeID
+		if typeID == None:
+			msg('big problem here')
+		msg('itemID: %s, typeID: %s' %(itemID, typeID, ))
+
+	@safetycheck
+	def TryBookmarkIt(*args):
+		try:
+			itemID = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
+			typeID = GetItem(itemID).typeID
+			# risky stuff goes here...
+			"""
+ 			bp = sm.GetService('michelle').GetBallpark()
+			if bp is None:
+			    return
+			slimItem = bp.GetInvItem(session.shipid)
+			if slimItem is None:
+			    return
+			typeID = slimItem.typeID
+			"""
+			# end of risky stuff
+
+			absvc = sm.GetService('addressbook')
+			if absvc == None:
+				msg('absvc is None!')
+			randName = '%d' % (random.randrange(1, 9999))
+			absvc.BookmarkLocationPopup(itemID, typeID, session.solarsystemid)
+			#absvc.BookmarkLocation(itemID, randName, "", typeID)
+		except:
+			msg('bad TryBookmarkIt')
 
 
 	try:
