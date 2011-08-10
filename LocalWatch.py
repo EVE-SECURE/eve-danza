@@ -257,13 +257,13 @@ try:
 			self.pane.sr.FocusBtn = btn
 
 			btn = uix.GetBigButton(50, self.pane.sr.main, left=50)
-			btn.OnClick = TryBookmarkIt
-			btn.hint = "TryBookmarkIt"
+			btn.OnClick = TryWarpToSafe
+			btn.hint = "TryWarpToSafe"
 			btn.sr.icon.LoadIcon('44_01')
 			self.pane.sr.Focus2Btn = btn
 
 		def Update(self):
-			# add kill check in the future
+
 			"""
 			self.A_down = False
 			self.S_down = False
@@ -350,50 +350,35 @@ try:
 
 	@safetycheck
 	def ReportInfo(*args):
-		itemID = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
-		if itemID == None:
-			return
-		slimItem = GetItem(itemID)
-
-		bp = sm.GetService('michelle').GetBallpark()
-		if bp is None:
-		    return
-		slimItem = bp.GetInvItem(session.shipid)
-		if slimItem is None:
-		    return
-
-		# temp code
-
-		typeID = slimItem.typeID
-		if typeID == None:
-			msg('big problem here')
-		msg('itemID: %s, typeID: %s' %(itemID, typeID, ))
+		absvc = sm.GetService('addressbook')
+		bookmarks = absvc.GetBookmarks()
+		bmsInSystem = list()
+		for each in bookmarks.itervalues():
+			if each.locationID == session.solarsystemid:
+				bmsInSystem.append(each)
+		msg('bmsInSystem length is: %d' % (len(bmsInSystem)))
 
 	@safetycheck
-	def TryBookmarkIt(*args):
-		try:
-			itemID = eve.LocalSvc("window").GetWindow("selecteditemview").itemIDs[0]
-			typeID = GetItem(itemID).typeID
-			# risky stuff goes here...
-			"""
- 			bp = sm.GetService('michelle').GetBallpark()
-			if bp is None:
-			    return
-			slimItem = bp.GetInvItem(session.shipid)
-			if slimItem is None:
-			    return
-			typeID = slimItem.typeID
-			"""
-			# end of risky stuff
-
-			absvc = sm.GetService('addressbook')
-			if absvc == None:
-				msg('absvc is None!')
-			randName = '%d' % (random.randrange(1, 9999))
-			absvc.BookmarkLocationPopup(itemID, typeID, session.solarsystemid)
-			#absvc.BookmarkLocation(itemID, randName, "", typeID)
-		except:
-			msg('bad TryBookmarkIt')
+	def TryWarpToSafe(*args):
+		absvc = sm.GetService('addressbook')
+		bookmarks = absvc.GetBookmarks()
+		bms = list()
+		for each in bookmarks.itervalues():
+			if each.locationID == session.solarsystemid:
+				bms.append(each)
+		safeBM = None
+		for bm in bms:
+			memo = absvc.UnzipMemo(bm.memo)[0]
+			if memo == 'safePoS':
+				safeBM = bm
+		if safeBM == None:
+			msg('error finding safePoS')
+			return
+		if session.solarsystemid and session.shipid:
+			bp = sm.GetService('michelle').GetRemotePark()
+			if bp:
+ 	 			bp.WarpToStuff('bookmark', safeBM.bookmarkID, minRange=0.0, fleet=False)
+		    	sm.StartService('space').WarpDestination(None, safeBM.bookmarkID, None)
 
 
 	try:
