@@ -277,6 +277,7 @@ try:
 			self.pane.sr.Focus2Btn = btn
 			"""
 			self.pane = LocalDash(parent=uicore.layer.abovemain, name='LocalDash')
+			self.pane.SetOpacity(0.5)
 			#self.pane.ShowMsg("<color=0xff0037ff>BLUES</color> "+" <color=0xffff3700>REDS</color> "+" <color=0xffffffff>TOTAL</color>" + "<br>",
 			#				"<color=0xff0037ff>0</color>    "+" <color=0xffff3700>0</color> "+"    <color=0xffffffff>0</color>")
 			if self.hostilecount == -1 or self.busy:
@@ -314,6 +315,7 @@ try:
 			if self.pane:
 				self.pane.Close()
  				self.pane = LocalDash(parent=uicore.layer.abovemain, name='LocalDash')
+				self.pane.SetOpacity(0.5)
 				if self.hostilecount == -1 or self.busy:
 					self.pane.ShowMsg("<color=0xffffffff>HOSTILES: " + "<color=0xffff3700>updating...</color>")
 				else:
@@ -434,7 +436,7 @@ try:
 				#self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=200, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
-			    border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER5, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.25))
+			    border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.25))
 			    frame = uicls.Frame(parent=self, color=(0.0, 0.0, 0.0, 0.75), frameConst=uiconst.FRAME_FILLED_CORNER1, state=uiconst.UI_DISABLED)
 
 			def ShowMsg(self, text1):
