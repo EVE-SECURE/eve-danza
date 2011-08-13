@@ -112,8 +112,39 @@ try:
 ##				msg('%s (%s)' % (entryname, typeinfo))
 		"""
 
+	@safetycheck
+	def GetCargo():
+		windows = sm.GetService('window').GetWindows()
+		cargo = None
+		for each in windows:
+			if each.__guid__ in ('form.DockedCargoView', 'form.InflightCargoView'):
+				cargo = each
+		return cargo
+		#cargo.sr.scroll.SelectAll()
+
+	@safetycheck
+	def GetHangar():
+		windows = sm.GetService('window').GetWindows()
+		hangar = None
+		for each in windows:
+			if each.__guid__ == 'form.ItemHangar':
+				hangar = each
+		return hangar
+		"""
+		for entry in hangar.sr.scroll.GetNodes():
+			name = entry.name
+			qty = entry.rec.stacksize
+			msg('%s (%s)' % (name, qty))
+			blue.pyos.synchro.Sleep(1000)
+		"""
+
+
 	try:
-		uthread.new(Report)
+		#uthread.new(Report)
+		cargo = GetCargo()
+		hangar = GetHangar()
+		if cargo and hangar:
+			hangar.OnDropDataWithIdx(cargo.sr.scroll.GetNodes())
 
 	except:
 		msg('failed doing something')
