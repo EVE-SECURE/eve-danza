@@ -59,6 +59,10 @@ def OnFKeyOverload(self, sidx, gidx):
     else:
         uthread.new(eve.Message, 'Disabled')
 
+# detect warping status
+if self.ball.mode == destiny.DSTBALL_WARP:
+	pass
+
 # ###################################################################################
 # set speed + direciton in svc.cmd
 def CmdSetShipFullSpeed(self, *args):
@@ -174,7 +178,10 @@ def Dock(self, id):
                             success = sm.GetService('sessionMgr').PerformSessionChange('dock', bp.Dock, id, session.shipid, paymentRequired)
             except Exception as e:
                 raise
-
+# undock from station
+def ExitStation(self, invItem):
+    uicore.cmd.CmdExitStation()
+# cancel warp dock
 def CancelWarpDock(self):
     self.warpDocking = False
 
@@ -202,9 +209,6 @@ def _OpenCargo(self, _id):
         finally:
             self._openingCargo = 0
 
-# exit station
-def ExitStation(self, invItem):
-    uicore.cmd.CmdExitStation()
 # launch drones
 def LaunchDrones(self, invItems, *args):
     sm.GetService('godma').GetStateManager().SendDroneSettings()
@@ -390,3 +394,215 @@ def SelectNode(self, node, multi = 0, subnode = None, checktoggle = 1):
 	#see details in actual code
 	pass
 
+#########################
+# hangar.py
+# form.ItemHangar
+def Add(self, itemID, sourceLocation, quantity, dividing = False):
+    return self.GetShell().Add(itemID, sourceLocation, qty=quantity, flag=const.flagHangar)
+# form.VirtualInvWindow
+
+def OnContentDropData(self, dragObj, nodes):
+    idx = None
+    if self.viewMode == 'icons' and self.cols:
+        (l, t,) = self.sr.scroll.GetAbsolutePosition()
+        idx = self.cols * len(self.sr.scroll.sr.nodes) + (uicore.uilib.x - l) // (64 + colMargin)
+    self.OnDropDataWithIdx(nodes, idx)
+
+def OnDropData(self, dragObj, nodes):
+    self.OnDropDataWithIdx(nodes)
+
+def RefreshCapacity(self):
+    cap = self.GetCapacity()
+    if self.destroyed:
+        return
+    (total, full,) = (cap.capacity, cap.used)
+    self.capacityText.text = '%s/%s m\xb3' % (util.FmtAmt(full, showFraction=1), util.FmtAmt(total, showFraction=1))
+    if total:
+        proportion = min(1.0, max(0.0, full / float(total)))
+    else:
+        proportion = 1.0
+    self.sr.gauge.width = int(proportion * self.sr.gaugeParent.width)
+
+
+###########################
+# svc.window
+def OpenCargo(self, id_, name, displayname = None, typeid = None):
+    if eve.session.stationid:
+        decoClass = form.DockedCargoView
+    elif eve.session.solarsystemid:
+        decoClass = form.InflightCargoView
+    else:
+        self.LogError('Not inflight or docked???')
+        return
+    self.LogInfo('OpenCargo', id_, name, displayname)
+    wnd = self.GetWindow('shipCargo_%s' % id_, create=1, maximize=1, decoClass=decoClass, _id=id_, displayName=name)
+    if wnd and id_ == eve.session.shipid:
+        wnd.scope = 'station_inflight'
+
+def OpenContainer(self, id_, name, displayname = None, typeid = None, hasCapacity = 0, locationFlag = None, nameLabel = 'loot', isWreck = False, windowPrefsID = None):
+    wnd = self.GetWindow(nameLabel + '_%s' % id_, create=1, maximize=1, decoClass=form.LootCargoView, windowPrefsID=windowPrefsID, _id=id_, displayName=name, hasCapacity=hasCapacity, locationFlag=locationFlag, isWreck=isWreck)
+
+def CloseContainer(self, id_):
+    wnd = self.GetWindow('loot_%s' % id_)
+    if wnd is not None and not wnd.destroyed:
+        wnd.SelfDestruct()
+
+
+##################################
+# flash screen in spaceMgr.py
+def FlashScreen(self, magnitude, duration = 0.5):
+	pass
+
+#####################################
+#####################################
+# AutoPilot's update call -
+# This includes checking warp state,
+# and a model for automated update calls
+# as well as some other useful stuff
+
+def Update(self):
+    if self.autopilot == 0:
+        self.KillTimer()
+        return
+    else:
+        if self.ignoreTimerCycles > 0:
+            self.ignoreTimerCycles = self.ignoreTimerCycles - 1
+            return
+        if not eve.session.IsItSafe():
+            self.LogInfo('returning as it is not safe')
+            return
+        if not eve.session.rwlock.IsCool():
+            self.LogInfo("returning as the session rwlock isn't cool")
+            return
+        starmapSvc = sm.GetService('starmap')
+        waypoints = starmapSvc.GetWaypoints()
+        destinationPath = starmapSvc.GetDestinationPath()
+        if len(destinationPath) == 0:
+            self.SetOff('  - %s' % mls.UI_INFLIGHT_NODESTPATHSET)
+            return
+        if destinationPath[0] == None:
+            self.SetOff('  - %s' % mls.UI_INFLIGHT_NODESTPATHSET)
+            return
+        bp = sm.GetService('michelle').GetBallpark()
+        if not bp:
+            return
+        if sm.GetService('jumpQueue').IsJumpQueued():
+            return
+        ship = bp.GetBall(eve.session.shipid)
+        if ship is None:
+            return
+        if ship.mode == destiny.DSTBALL_WARP:
+            return
+        gateID = None
+        gateItem = None
+        for ballID in bp.balls.iterkeys():
+            slimItem = bp.GetInvItem(ballID)
+            if slimItem == None:
+                continue
+            if slimItem.groupID == const.groupStargate and destinationPath[0] in map(lambda x: x.locationID, slimItem.jumps):
+                gateID = ballID
+                gateItem = slimItem
+                break
+
+        if gateID is None:
+            return
+        theJump = None
+        for jump in gateItem.jumps:
+            if destinationPath[0] == jump.locationID:
+                theJump = jump
+                break
+
+        if theJump is None:
+            return
+        gate = bp.GetBall(gateID)
+        if gate is None:
+            return
+        jumpToSystem = sm.GetService('map').GetItem(theJump.locationID)
+        shipGateDistance = bp.GetSurfaceDist(ship.id, gateID)
+        if shipGateDistance < const.maxStargateJumpingDistance:
+            if ship.isCloaked:
+                return
+            if eve.session.mutating:
+                self.LogInfo('session is mutating')
+                return
+            if eve.session.changing:
+                self.LogInfo('session is changing')
+                return
+            if bp.solarsystemID != eve.session.solarsystemid:
+                self.LogInfo('bp.solarsystemid is not solarsystemid')
+                return
+            if sm.GetService('michelle').GetRemotePark()._Moniker__bindParams != eve.session.solarsystemid:
+                self.LogInfo('remote park moniker bindparams is not solarsystemid')
+                return
+            try:
+                self.LogNotice('Autopilot jumping from', gateID, 'to', theJump.toCelestialID, '(', jumpToSystem.itemName, ')')
+                sm.GetService('sessionMgr').PerformSessionChange('autopilot', sm.GetService('michelle').GetRemotePark().StargateJump, gateID, theJump.toCelestialID, eve.session.shipid)
+                eve.Message('AutoPilotJumping', {'what': jumpToSystem.itemName})
+                self.ignoreTimerCycles = 5
+            except UserError as e:
+                if e.msg == 'SystemCheck_JumpFailed_Stuck':
+                    self.SetOff()
+                    raise
+                elif e.msg.startswith('SystemCheck_JumpFailed_'):
+                    eve.Message(e.msg, e.dict)
+                elif e.msg == 'NotCloseEnoughToJump':
+                    park = sm.GetService('michelle').GetRemotePark()
+                    park.SetSpeedFraction(1.0)
+                    shipui = uicore.layer.shipui
+                    if shipui.isopen:
+                        shipui.SetSpeed(1.0)
+                    park.FollowBall(gateID, 0.0)
+                    self.LogWarn("Autopilot: I thought I was close enough to jump, but I wasn't.")
+                sys.exc_clear()
+                self.LogError('Autopilot: jumping to ' + jumpToSystem.itemName + ' failed. Will try again')
+                self.ignoreTimerCycles = 5
+            except:
+                sys.exc_clear()
+                self.LogError('Autopilot: jumping to ' + jumpToSystem.itemName + ' failed. Will try again')
+                self.ignoreTimerCycles = 5
+            return
+        if shipGateDistance < const.minWarpDistance:
+            if ship.mode == destiny.DSTBALL_FOLLOW and ship.followId == gateID:
+                return
+            park = sm.GetService('michelle').GetRemotePark()
+            park.SetSpeedFraction(1.0)
+            shipui = uicore.layer.shipui
+            if shipui.isopen:
+                shipui.SetSpeed(1.0)
+            park.FollowBall(gateID, 0.0)
+            eve.Message('AutoPilotApproaching')
+            self.LogInfo('Autopilot: approaching')
+            self.ignoreTimerCycles = 2
+            return
+        try:
+            sm.GetService('space').WarpDestination(gateID, None, None)
+            sm.GetService('michelle').GetRemotePark().WarpToStuffAutopilot(gateID)
+            eve.Message('AutoPilotWarpingTo', {'what': jumpToSystem.itemName})
+            self.LogInfo('Autopilot: warping to gate')
+            self.ignoreTimerCycles = 2
+        except:
+            sys.exc_clear()
+            item = sm.GetService('godma').GetItem(session.shipid)
+            if item.warpScrambleStatus > 0:
+                self.SetOff('Autopilot cannot warp while warp scrambled.')
+        return
+###################################
+# module interactions
+# shipmodulebutton.py
+def Click(self, ctrlRepeat = 0):
+    if self.waitingForActiveTarget:
+        sm.GetService('target').CancelTargetOrder(self)
+        self.waitingForActiveTarget = 0
+    elif self.def_effect is None:
+        log.LogWarn('No default Effect available for this moduletypeID:', self.sr.moduleInfo.typeID)
+    elif not self.online:
+        if getattr(self, 'isMaster', None):
+            eve.Message('ClickOffllineGroup')
+        else:
+            eve.Message('ClickOffllineModule')
+    elif self.def_effect.isActive:
+        self.DeactivateEffect(self.def_effect)
+    elif not self.effect_activating:
+        self.activationTimer = base.AutoTimer(500, self.ActivateEffectTimer)
+        self.effect_activating = 1
+        self.ActivateEffect(self.def_effect, ctrlRepeat=ctrlRepeat)
