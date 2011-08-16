@@ -540,7 +540,7 @@ try:
 						# first check to see if we have 3 targets
 						targetsvc = sm.GetService('target')
 						targets = targetsvc.GetTargets()
-						if len(targets) < 3:
+						if len(targets) < 6:
 							# we need to acquire new targets until we have 3
 							i = 0
 							for node in scrollnodes:
@@ -549,24 +549,26 @@ try:
 									except:
 										pass
  									i += 1
-									if i >= 3:
+									if i >= 6:
 										break
-						Sleep(random.randrange(2000,3000))
+									Sleep(250)
+						Sleep(random.randrange(1000,2000))
 						# now we need to worry about activating all modules
-						modulelist = []
-	  					for i in xrange(0, 8):
-							slot = uicore.layer.shipui.sr.slotsByOrder.get((0, i), None)
-							if slot and slot.sr.module and slot.sr.module.state == uiconst.UI_NORMAL:
-								if not slot.sr.module.def_effect.isActive:
-							 		#we need to activate the module
-									modulelist.append(slot.sr.module)
-						for each in modulelist:
-							try:
-								each.Click()
-								Sleep(random.randrange(1000, 1500))
-								targetsvc.SelectNextTarget()
-							except:
-								pass
+						if len(targetsvc.GetTargets()) >= 3:
+							modulelist = []
+		  					for i in xrange(0, 8):
+								slot = uicore.layer.shipui.sr.slotsByOrder.get((0, i), None)
+								if slot and slot.sr.module and slot.sr.module.state == uiconst.UI_NORMAL:
+									if not slot.sr.module.def_effect.isActive:
+								 		#we need to activate the module
+										modulelist.append(slot.sr.module)
+							for each in modulelist:
+								try:
+									each.Click()
+									Sleep(random.randrange(1000, 1500))
+									targetsvc.SelectNextTarget()
+								except:
+									pass
 						self.MineLock = 0
 
 		@safetycheck
