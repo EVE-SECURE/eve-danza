@@ -63,6 +63,10 @@ def OnFKeyOverload(self, sidx, gidx):
 if self.ball.mode == destiny.DSTBALL_WARP:
 	pass
 
+# drop stuff in cargo inflight
+def DropInCargo(self, dragObj, nodes):
+	pass
+
 # ###################################################################################
 # set speed + direciton in svc.cmd
 def CmdSetShipFullSpeed(self, *args):
