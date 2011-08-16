@@ -298,7 +298,7 @@ try:
 			self.DoLock = 0
 			self.pane = None
 			self.belts = []
-			self.modulesTargets = []
+			self.modulesTargets = {}
 			self.updateSkip = 0
 			self.state = None
 			self.location = None
@@ -356,8 +356,9 @@ try:
 				uthread.new(self.Undock)
 				self.updateSkip += 10
 			elif (self.state == STATE_UNDOCKED):
-				uthread.new(self.WarpToBelt)
-				self.updateSkip += 1
+				if (not self.UndockLock):
+					uthread.new(self.WarpToBelt)
+					self.updateSkip += 1
 			elif (self.state == STATE_WARPING) and (self.location == LOCATION_BELT):
 				pass
 			elif (self.state == STATE_IDLESPACE):
@@ -507,7 +508,7 @@ try:
 			overview = sm.GetService('window').GetWindow('OverView')
 			scrollnodes = overview.sr.scroll.GetNodes()
 			if scrollnodes is not None:
-				if len(scrollnodes) < 10:
+				if len(scrollnodes) < 8:
 				# we need to warp to a better belt
 					self.WarpToBelt()
 					self.MineLock = 0
@@ -556,17 +557,29 @@ try:
 						# now we need to worry about activating all modules
 						if len(targetsvc.GetTargets()) >= 3:
 							modulelist = []
+							deactivate = []
 		  					for i in xrange(0, 8):
 								slot = uicore.layer.shipui.sr.slotsByOrder.get((0, i), None)
 								if slot and slot.sr.module and slot.sr.module.state == uiconst.UI_NORMAL:
 									if not slot.sr.module.def_effect.isActive:
 								 		#we need to activate the module
 										modulelist.append(slot.sr.module)
+									else:
+										if (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
+											deactivate.append(slot.sr.module)
 							for each in modulelist:
 								try:
-									each.Click()
-									Sleep(random.randrange(1000, 1500))
+									uthread.new(each.Click)
+									Sleep(random.randrange(1000,1500))
+									self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
 									targetsvc.SelectNextTarget()
+								except:
+									pass
+							for each in deactivate:
+								try:
+									uthread.new(each.Click)
+									Sleep(random.randrange(500,1000))
+									self.modulesTargets[each.id] = None
 								except:
 									pass
 						self.MineLock = 0
