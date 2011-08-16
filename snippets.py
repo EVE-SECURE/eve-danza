@@ -610,3 +610,56 @@ def Click(self, ctrlRepeat = 0):
         self.activationTimer = base.AutoTimer(500, self.ActivateEffectTimer)
         self.effect_activating = 1
         self.ActivateEffect(self.def_effect, ctrlRepeat=ctrlRepeat)
+#########################################
+# tactical.py
+# toggling tactical layer display
+def Init(self):
+    if self.logme:
+        self.LogInfo('Tactical::Init')
+    if not self.inited:
+        rm = []
+        scene2 = sm.GetService('sceneManager').GetRegisteredScene2('default')
+        if scene2 is None:
+            return
+        for each in scene2.objects:
+            if each.name == 'TacticalMap':
+                rm.append(each)
+
+        for each in rm:
+            scene2.objects.remove(each)
+
+        self.arena = trinity.Load('res:/UI/Inflight/tactical/TacticalMap.red')
+        self.arena.name = 'TacticalMap'
+        self.usedCurveSets = []
+        self.directionCurveSet = None
+        self.updateDirectionTimer = None
+        for child in self.arena.children:
+            if child.name == 'connectors':
+                self.connectors = child
+            elif child.name == 'TargetingRange':
+                self.TargetingRange = child
+            elif child.name == 'OptimalRange':
+                self.OptimalRange = child
+            elif child.name == 'FalloffRange':
+                self.FalloffRange = child
+            elif child.name == 'circleLineSet':
+                self.circles = child
+            elif child.name == 'directionLineSet':
+                self.direction = child
+
+        self.InitDistanceCircles()
+        self.InitDirectionLines()
+        scene2.objects.append(self.arena)
+        self.inited = True
+        self.InitConnectors()
+        self.UpdateTargetingRanges()
+
+# init for directionlines
+def InitDirectionLines(self):
+    if self.direction is None:
+        return
+    self.direction.ClearLines()
+    color = (0.2, 0.2, 0.2, 1.0)
+    self.direction.AddLine((0.0, 0.0, 0.0), color, (1.0, 1.0, 1.0), color)
+    self.direction.display = False
+    self.direction.SubmitChanges()

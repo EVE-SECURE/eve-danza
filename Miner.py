@@ -508,7 +508,7 @@ try:
 			overview = sm.GetService('window').GetWindow('OverView')
 			scrollnodes = overview.sr.scroll.GetNodes()
 			if scrollnodes is not None:
-				if len(scrollnodes) < 8:
+				if len(scrollnodes) < 6:
 				# we need to warp to a better belt
 					self.WarpToBelt()
 					self.MineLock = 0

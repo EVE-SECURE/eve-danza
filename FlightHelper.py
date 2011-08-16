@@ -93,7 +93,7 @@ try:
 		except:
 			msg('MyMove error')
 
-	class MyService(service.Service):
+	class SteerService(service.Service):
 		__guid__ = 'svc.SteerService'
 		__servicename__ = 'SteerService'
 		__displayname__ = 'Steer Service'
@@ -101,51 +101,67 @@ try:
 		def __init__(self):
 			service.Service.__init__(self)
 			sm.GetService('gameui').Say('Steer Service started')
-			self.busy = False
-  			self.alive = base.AutoTimer(100, self.Update)
-			self.direction = {'LEFT': 0, 'RIGHT': 0, 'UP': 0, 'DOWN': 0 }
+			self.busy = 0
+			self.accelconst = 0.25
+			self.acceleration = { 'LEFT': 1, 'RIGHT': 1, 'UP': 1, 'DOWN': 1 }
+  			self.alive = base.AutoTimer(99, self.Update)
+			self.keyDown = {'LEFT': 0, 'RIGHT': 0, 'UP': 0, 'DOWN': 0 }
 
 		def initPane(self):
 			pass
 
-
 		def Update(self):
-			for key in self.direction.keys():
-				self.direction[key] = 0
+			for key in self.keyDown.keys():
+				self.keyDown[key] = 0
 			ret = ''
 			if uicore.uilib.Key(uiconst.VK_A):
-				self.direction['LEFT'] = 1
+				self.keyDown['LEFT'] = 1
 				ret += 'A'
 			if uicore.uilib.Key(uiconst.VK_S):
-				self.direction['DOWN'] = 1
+				self.keyDown['DOWN'] = 1
 				ret += 'S'
 			if uicore.uilib.Key(uiconst.VK_D):
-				self.direction['RIGHT'] = 1
+				self.keyDown['RIGHT'] = 1
 				ret += 'D'
 			if uicore.uilib.Key(uiconst.VK_W):
-				self.direction['UP'] = 1
+				self.keyDown['UP'] = 1
 				ret += 'W'
  			# skip if nothing is pressed or if we're busy
 			if (not ret == "") and (not self.busy):
-				msg(ret)
+				#msg(ret)
+				self.UpdateAcceleration()
 				self.UpdateDirection()
 
+		@safetycheck
+		def UpdateAcceleration(self):
+			self.busy = 1
+			for key in self.keyDown.keys():
+				if self.keyDown[key]:
+					#increase acceleration per updated keyDown
+					self.acceleration[key] += 1
+				else:
+					# lifting the key resets the acceleration
+					self.acceleration[key] = 1
+			self.busy = 0
+
+		@safetycheck
 		def UpdateDirection(self):
-			self.busy = True
+			self.busy = 1
  			bp = sm.GetService('michelle').GetBallpark()
 			rbp = sm.GetService('michelle').GetRemotePark()
 			if bp is None or rbp is None:
+				self.busy = 0
 				return
 			ownBall = bp.GetBall(eve.session.shipid)
 			x, y = 0.0, 0.0
-			if self.direction['UP']:
-				y += 0.33
-			elif self.direction['DOWN']:
-				y += -0.33
-			elif self.direction['LEFT']:
-				x += 0.33
-			elif self.direction['RIGHT']:
-				x += -0.33
+			if self.keyDown['UP']:
+				y += self.accelconst * self.acceleration['UP']
+			elif self.keyDown['DOWN']:
+				y -= self.accelconst * self.acceleration['DOWN']
+			elif self.keyDown['LEFT']:
+				x += self.accelconst * self.acceleration['LEFT']
+			elif self.keyDown['RIGHT']:
+				x -= self.accelconst * self.acceleration['RIGHT']
 			d = trinity.TriVector(x, y, 1.0)
 			if ownBall and rbp is not None:
 				if not sm.GetService('autoPilot').GetState():
@@ -155,8 +171,7 @@ try:
 					rbp.GotoDirection(d.x, d.y, d.z)
 			if rbp is not None:
 				rbp.SetSpeedFraction(ownBall.speedFraction)
-			self.busy = False
-
+			self.busy = 0
 
 		def Open(self):
 			if self.pane:
@@ -180,9 +195,9 @@ try:
 		#create an instance of something
 		bottomline = sm.GetService('neocom').bottomline
 		if bottomline and hasattr(bottomline, "alive") and bottomline.alive:
-			msg('LocalWatch Service already running!')
+			msg('Steer Service already running!')
 		else:
-			sm.GetService('neocom').bottomline = MyService()
+			sm.GetService('neocom').bottomline = SteerService()
 
 	@safetycheck
 	def DestroyIt(*args):
@@ -194,7 +209,7 @@ try:
 			sm.GetService('neocom').bottomline.CleanUp()
 		del sm.GetService('neocom').bottomline
 		sm.GetService('neocom').bottomline = None
-		msg('LocalWatch Service killed!')
+		msg('Steer Service killed!')
 
 	@safetycheck
 	def ToggleIt(*args):
