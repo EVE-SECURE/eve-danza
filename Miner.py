@@ -192,6 +192,9 @@ try:
   			self.alive = base.AutoTimer(1000, self.Update)
 
 		def StartUp(self):
+			self.runCount = 0
+			self.avgTime = 0
+			self.lastStart = None
 			self.balls = []
 			self.station = None
 			self.UpdateLocationLock = 0
@@ -199,11 +202,14 @@ try:
 			self.MineLock = 0
 			self.UndockLock = 0
 			self.DoLock = 0
+			self.RefillLock = 0
+			self.WarpLock = 0
 			self.pane = None
 			self.bmsToSkip = []
 			self.currentBM = None
 			self.modulesTargets = {}
 			self.updateSkip = 0
+			self.undockSafeFlag = 0
 			self.state = None
 			self.location = None
 			self.UpdateLocation()
@@ -223,7 +229,7 @@ try:
 				locationname = STR[self.location]
 			if not self.state is None:
 				statename = STR[self.state]
-			self.pane.ShowMsg(locationname, statename)
+			self.pane.ShowMsg(locationname, statename, self.runCount, self.avgTime)
 
 		def Update(self):
 			if self.updateSkip:
@@ -261,21 +267,27 @@ try:
 				self.updateSkip += 1
 			elif (self.state == STATE_UNLOADSTATION):
 				uthread.new(self.Unload)
-				self.updateSkip += 1
+				self.updateSkip += 2
+			elif (self.state == STATE_IDLESTATION):
+				if (not self.undockSafeFlag) and (not self.RefillLock):
+					uthread.new(self.RefillCrystal)
+					self.updateSkip += 6
 			elif (self.state == STATE_READYSTATION) and (not self.UndockLock):
 				uthread.new(self.Undock)
 				self.updateSkip += 10
 			elif (self.state == STATE_UNDOCKED):
-				if (not self.UndockLock):
+				if (not self.UndockLock) and (not self.WarpLock):
 					uthread.new(self.WarpToBelt)
-					self.updateSkip += 1
+					self.updateSkip += 2
 			elif (self.state == STATE_WARPING) and (self.location == LOCATION_BELT):
 				pass
 			elif (self.state == STATE_IDLESPACE):
 				if self.location == LOCATION_BELT:
 					self.state == STATE_MINING
-				else:
+				elif not self.WarpLock:
 					uthread.new(self.WarpToBelt)
+				else:
+					pass
 			self.DoLock = 0
 
 
@@ -290,19 +302,17 @@ try:
 			# if we are docked, we are either unloading or idle
 				cargownd = self.GetCargo()
 				if cargownd == None:
-					self.state = STATE_HIBERNATE
 					self.UpdateStateLock = 0
 					return
 				cargoloot = cargownd.sr.scroll.GetNodes()
  				# if our cargo is not yet emptied, we are in unloading
 				if len(cargoloot) > 0:
 					self.state = STATE_UNLOADSTATION
-				# if our cargo is empty, and lasers are loaded, we're ready
-				# ADD LASER CHECK LATER!
-				else:
+				# if our cargo is empty, and lasers are loaded, we're idling and checking other things
+				elif self.undockSafeFlag:
 					self.state = STATE_READYSTATION
-				# if we're in generic idle, we need to figure out which specific state we need to be in
-				# ADD LATER!
+				else:
+					self.state = STATE_IDLESTATION
 			elif self.IsInWarp():
 				self.state = STATE_WARPING
 			elif self.location == LOCATION_STATIONUNDOCKED:
@@ -318,7 +328,7 @@ try:
 				else:
 					proportion = 1.0
 				# we're being lenient on the definition of "full" here
-				if proportion > 0.8:
+				if proportion > 0.9:
 					self.state = STATE_DOCKINGSTATION
 				else:
 					self.state = STATE_UNDOCKED
@@ -336,7 +346,7 @@ try:
 				else:
 					proportion = 1.0
 				# we're being lenient on the definition of "full" here
-				if proportion > 0.8:
+				if proportion > 0.9:
 					self.state = STATE_DOCKINGSTATION
 				# if we're sitting at a belt, we can be idle or we can be mining
 				elif self.ModulesActive():
@@ -356,6 +366,7 @@ try:
 			# locate the closest ball in ballpark, determine what it is
 			if session.stationid:
 				self.location = LOCATION_STATIONDOCKED
+				self.station = session.stationid
 			elif session.shipid:
 				if len(self.balls) == 0:
 			 		self.UpdateBalls()
@@ -422,8 +433,12 @@ try:
 			if scrollnodes is not None:
 				if len(scrollnodes) < 6:
 				# we need to warp to a better belt, and tag this one bad
-					self.bmsToSkip.append(self.currentBM)
-					self.WarpToBelt()
+					if not self.WarpLock:
+						if self.currentBM not in self.bmsToSkip:
+							self.bmsToSkip.append(self.currentBM)
+						msg('Bad belt, currently skipping %d' % len(self.bmsToSkip))
+						Sleep(1000)
+						self.WarpToBelt()
 					self.MineLock = 0
 					return
 				else:
@@ -447,7 +462,8 @@ try:
 						return
    					# we need to check if target is in range, if not, we should warp off
 					elif (dist <= const.minWarpDistance) and (dist > 15000):
-						self.WarpToBelt()
+						if not self.WarpLock:
+							self.WarpToBelt()
 						self.MineLock = 0
 						return
 					else:
@@ -460,7 +476,9 @@ try:
 							i = 0
 							for node in scrollnodes:
 									try:
-										targetsvc.TryLockTarget(node.slimItem().itemID)
+										nodeball = bp.GetBall(node.slimItem().itemID)
+										if nodeball.surfaceDist < 28000:
+											targetsvc.TryLockTarget(node.slimItem().itemID)
 									except:
 										pass
  									i += 1
@@ -469,7 +487,7 @@ try:
 									Sleep(250)
 						Sleep(random.randrange(2000,3000))
 						# now we need to worry about activating all modules
-						if len(targetsvc.GetTargets()) >= 1:
+						if len(targetsvc.GetTargets()) >= 3:
 							modulelist = []
 							deactivate = []
 		  					for i in xrange(0, 8):
@@ -486,9 +504,12 @@ try:
 											pass
 							for each in modulelist:
 								try:
-									uthread.new(each.Click)
-									Sleep(random.randrange(500,1000))
-									self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
+									targetID = targetsvc.GetActiveTargetID()
+									eachball = sm.GetService('michelle').GetBallpark().GetBall(targetID)
+									if eachball.surfaceDist < 15000:
+										uthread.new(each.Click)
+										Sleep(random.randrange(500,1000))
+										self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
 									targetsvc.SelectNextTarget()
 								except:
 									pass
@@ -503,27 +524,31 @@ try:
 
 		@safetycheck
 		def WarpToBelt(self):
-			# courtesy delay
-			Sleep(1000)
+			self.WarpLock = 1
 			try:
-				absvc = sm.GetService('addressbook')
-				bookmarks = absvc.GetBookmarks()
 				if len(self.bmsToSkip) >= 7:
 					msg('all belts are depleted!')
 					self.state = STATE_HIBERNATE
+					self.WarpLock = 0
 					return
+				absvc = sm.GetService('addressbook')
+				bookmarks = absvc.GetBookmarks()
+
 				bms = list()
 				for each in bookmarks.itervalues():
 					if each.locationID == session.solarsystemid:
 						bms.append(each)
 				randomidx = random.randrange(0, 6)
 				# we need to reroll a bm if this one is bad
-				while (bms[randomidx] in self.bmsToSkip):
+				while (len(self.bmsToSkip) > 0) and (bms[randomidx].bookmarkID in self.bmsToSkip):
 					randomidx = random.randrange(0, 6)
-				self.currentBM = bms[randomidx]
+				self.currentBM = bms[randomidx].bookmarkID
 				sm.GetService('menu').WarpToBookmark(bms[randomidx], 0.0, False)
+				Sleep(6000)
 			except:
 				msg('cannot warp to belt')
+
+			self.WarpLock = 0
 
 		@safetycheck
 		def DockUp(self):
@@ -537,9 +562,9 @@ try:
 		def Undock(self):
 			self.UndockLock = 1
 			try:
-				Sleep(random.randrange(30000, 35000))
+				Sleep(random.randrange(25000, 30000))
   				uicore.cmd.CmdExitStation()
-				Sleep(random.randrange(15000, 20000))
+				Sleep(random.randrange(15000, 18000))
 			except:
 				msg('cannot undock')
 			self.UndockLock = 0
@@ -572,6 +597,12 @@ try:
 			for each in windows:
 				if each.__guid__ in ('form.DockedCargoView', 'form.InflightCargoView'):
 					cargo = each
+			if cargo == None:
+				sm.GetService('cmd').OpenCargoHoldOfActiveShip()
+ 				Sleep(1000)
+			for each in windows:
+				if each.__guid__ in ('form.DockedCargoView', 'form.InflightCargoView'):
+					cargo = each
 			return cargo
 
 		@safetycheck
@@ -581,7 +612,69 @@ try:
 			for each in windows:
 				if each.__guid__ == 'form.ItemHangar':
 					hangar = each
+			if hangar == None:
+				sm.GetService('cmd').OpenHangarFloor()
+ 				Sleep(1000)
+			for each in windows:
+				if each.__guid__ == 'form.ItemHangar':
+					hangar = each
 			return hangar
+
+		@safetycheck
+		def GetFitting(self):
+			fitting = sm.GetService('window').GetWindow('fitting')
+			if fitting == None:
+				sm.GetService('cmd').OpenFitting()
+				Sleep(3000)
+				fitting = sm.GetService('window').GetWindow('fitting')
+			return fitting
+
+		@safetycheck
+		def RefillCrystal(self):
+			self.RefillLock = 1
+			try:
+				hangar = self.GetHangar()
+				fittingwnd = self.GetFitting()
+				if hangar == None or fittingwnd == None:
+					self.RefillLock = 0
+					return
+				# get empty mining laser slots
+				empty = []
+				for slot in fittingwnd.sr.fitting.slots.itervalues():
+					if hasattr(slot, 'module') and (slot.module) and (slot.module.groupID == const.groupFrequencyMiningLaser):
+						if slot.IsChargeEmpty():
+							empty.append(slot)
+				msg('%d empty lasers detected' % len(empty))
+				if len(empty) > 0:
+					Sleep(2000)
+					# get crystal nodes from the item hangar
+					crystals = []
+					for node in hangar.sr.scroll.GetNodes():
+						item = node.rec
+						if empty[0].IsCharge(item.typeID):
+							crystals.append(item)
+					for slot in empty:
+						item = crystals.pop()
+						slot.shell.inventory.Add(item.itemID, item.locationID, qty=1, flag=slot.locationFlag)
+						msg('loaded a crystal into slot%d' % slot.id)
+						Sleep(1000)
+				self.undockSafeFlag = 1
+			except:
+				msg('error in refilling crystals')
+
+			# updating run stats
+			uthread.new(self.UpdateStats)
+			self.RefillLock = 0
+
+		@safetycheck
+		def UpdateStats(self):
+			if (not self.lastStart == None):
+				lastFinish = blue.os.GetTime()
+				duration = lastFinish - self.lastStart
+				self.avgTime = (self.avgTime * self.runCount + duration) / (self.runCount + 1)
+			self.lastStart = blue.os.GetTime()
+			self.runCount += 1
+
 
 		def Open(self):
 			if self.pane == None:
@@ -618,24 +711,30 @@ try:
 				self.scope = 'station_inflight'
 				self.message = None
 				self.message2 = None
+				self.message3 = None
+				self.message4 = None
 				uicls.Container.ApplyAttributes(self, attributes)
 
 			def Prepare_Text_(self):
-				self.message = uicls.Label(text='', parent=self, left=0, top=4, autowidth=False, width=200, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=200, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message = uicls.Label(text='', parent=self, left=0, top=4, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message3 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message4 = uicls.Label(text='', parent=self, left=0, top=40, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
 				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
 				frame = uicls.Frame(parent=self, color=(0.0, 0.0, 0.0, 0.75), frameConst=uiconst.FRAME_FILLED_CORNER1, state=uiconst.UI_DISABLED)
 
-			def ShowMsg(self, location, state):
+			def ShowMsg(self, location, state, runCount, avgTime):
 				if self.message is None:
 					self.Prepare_Text_()
 					self.Prepare_Underlay_()
 				self.message.text = '<center>Location: ' + location
 				self.message2.text = '<center>State: ' + state
+				self.message3.text = '<center>Total Run Count: %d' % runCount
+				self.message4.text = '<center>Average Run Time: %s' % (avgTime, )
 				self.SetAlign(uiconst.CENTERTOP)
-				self.SetSize(200, 32)
+				self.SetSize(300, 56)
 				offset = sm.GetService('window').GetCameraLeftOffset(self.width, align=uiconst.CENTERTOP, left=0)
 				self.SetPosition(offset, 5)
 				self.state = uiconst.UI_DISABLED
