@@ -45,7 +45,7 @@ try:
 	STATE_UNDOCKED = 4
 	STATE_WARPING = 5
 	STATE_IDLEBELT = 6
-	STATE_ERROR = 7
+	STATE_HIBERNATE = 7
 	STATE_MINING = 8
 	STATE_DOCKINGSTATION = 9
 	LOCATION_BELT = 10
@@ -59,7 +59,7 @@ try:
 			"Undocked from station",
 			"Warping",
 			"Idle in belt",
-			"ERROR!",
+			"Hibernating...",
 			"Mining asteroid",
 			"Docking to station",
 			"Asteroid belt",
@@ -124,33 +124,6 @@ try:
 		cmdsvc.CmdActivateHighPowerSlot2()
 
 	@safetycheck
-	def FindStation():
-		stationID = None
-		ballpark = sm.GetService('michelle').GetBallpark()
-		for itemID in ballpark.balls.keys():
-			if ballpark is None:
-				break
-			if itemID == eve.session.shipid:
-				continue
-			slimItem = ballpark.GetInvItem(itemID)
-			#ball = ballpark.GetBall(itemID)
-			if not slimItem:
-				continue
-			if slimItem.groupID == const.groupStation:
-				stationID = itemID
-		return stationID
-
-
-	"""
-##   		slimItem = node.slimItem()
-##			if slimItem:
-
-##				typeinfo = cfg.invtypes.Get(slimItem.typeID)
-##				entryname = hint = uix.GetSlimItemName(slimItem)
-##				msg('%s (%s)' % (entryname, typeinfo))
-	"""
-
-	@safetycheck
 	def GetCargo():
 		windows = sm.GetService('window').GetWindows()
 		cargo = None
@@ -175,76 +148,6 @@ try:
 			msg('%s (%s)' % (name, qty))
 			blue.pyos.synchro.Sleep(1000)
 		"""
-
-	@safetycheck
-	def DockUp():
-		try:
-			stationID = FindStation()
-			menusvc = sm.GetService('menu')
-			menusvc.Dock(stationID)
-		except:
-			pass
-
-	@safetycheck
-	def GetLocation():
-		locationname = None
-		if session.stationid:
-			locationname = cfg.evelocations.Get(session.stationid2).name
-		elif session.shipid:
-	 		validNearBy = [const.groupAsteroidBelt,
-			 const.groupMoon,
-			 const.groupPlanet,
-			 const.groupWarpGate,
-			 const.groupStargate]
-	   		ballPark = sm.GetService('michelle').GetBallpark()
-			myBall = ballPark.GetBall(eve.session.shipid)
-			if not ballPark:
-				return
-			lst = []
-			for (ballID, ball,) in ballPark.balls.iteritems():
-				slimItem = ballPark.GetInvItem(ballID)
-				if slimItem and slimItem.groupID in validNearBy:
-				 	if myBall:
-						dist = trinity.TriVector(ball.x - myBall.x, ball.y - myBall.y, ball.z - myBall.z).Length()
-						lst.append((dist, slimItem))
-					else:
-						lst.append((ball.surfaceDist, slimItem))
-
-			lst.sort()
-			if lst:
-				location = lst[0][1]
-			if location:
-				typeinfo = cfg.invtypes.Get(location.typeID)
-				locationname = uix.GetSlimItemName(location)
-				itemID = location.itemID
-				typeID = location.typeID
-				if not locationname:
-					locationname = typeinfo.Group().name
-		"""
-		elif session.shipid:
-			location = sm.GetService('neocom').GetNearestBall()
-			if not location is None:
-				locationname = location.name
-		"""
-		msg('nearest is: %s' % locationname)
-
-	@safetycheck
-	def WarpRandomBelt():
-		if session.shipid:
-			ballPark = sm.GetService('michelle').GetBallpark()
-			myBall = ballPark.GetBall(eve.session.shipid)
-			if not ballPark:
-				return
-			belts = []
-			for (ballID, ball,) in ballPark.balls.iteritems():
-				slimItem = ballPark.GetInvItem(ballID)
-				if slimItem and (slimItem.groupID == const.groupAsteroidBelt):
-					belts.append(ballID)
-			msg('belts found: %d' % len(belts))
-		randomidx = random.randrange(1, len(belts)) - 1
-		destination = belts[randomidx]
-		sm.GetService('menu').WarpToItem(destination, 0)
-
 
 	@safetycheck
 	def CreateIt(*args):
@@ -297,13 +200,14 @@ try:
 			self.UndockLock = 0
 			self.DoLock = 0
 			self.pane = None
-			self.belts = []
+			self.bmsToSkip = []
+			self.currentBM = None
 			self.modulesTargets = {}
 			self.updateSkip = 0
 			self.state = None
 			self.location = None
-			self.UpdateState()
 			self.UpdateLocation()
+			self.UpdateState()
 			self.InitPane()
 
 		def InitPane(self):
@@ -342,7 +246,13 @@ try:
 		@safetycheck
 		def DoSomething(self):
 			self.DoLock = 1
-			if (self.state == STATE_IDLEBELT or self.state == STATE_MINING) and (not self.MineLock):
+			if (self.state == STATE_HIBERNATE):
+				if self.location == LOCATION_STATIONDOCKED:
+					# we are doing nothing
+					pass
+				else:
+					self.DockUp()
+			elif (self.state == STATE_IDLEBELT or self.state == STATE_MINING) and (not self.MineLock):
 				uthread.new(self.Mine)
 				if self.state == STATE_MINING:
 					self.updateSkip += 2
@@ -372,12 +282,15 @@ try:
 		@safetycheck
 		def UpdateState(self):
 			self.UpdateStateLock = 1
+			if self.state == STATE_HIBERNATE:
+				# we should not update state if we're hibernating
+				pass
 			# determine state from location and environment
-			if self.location == LOCATION_STATIONDOCKED:
+			elif self.location == LOCATION_STATIONDOCKED:
 			# if we are docked, we are either unloading or idle
 				cargownd = self.GetCargo()
 				if cargownd == None:
-					self.state = STATE_ERROR
+					self.state = STATE_HIBERNATE
 					self.UpdateStateLock = 0
 					return
 				cargoloot = cargownd.sr.scroll.GetNodes()
@@ -395,7 +308,7 @@ try:
 			elif self.location == LOCATION_STATIONUNDOCKED:
 				cargownd = self.GetCargo()
 				if cargownd == None:
-					self.state == STATE_ERROR
+					self.state == STATE_HIBERNATE
 					self.UpdateStateLock = 0
 					return
 				cap = cargownd.GetCapacity()
@@ -413,7 +326,7 @@ try:
 				# if our cargo is full and we're at a belt, we must be docking up
 				cargownd = self.GetCargo()
 				if cargownd == None:
-					self.state == STATE_ERROR
+					self.state == STATE_HIBERNATE
 					self.UpdateStateLock = 0
 					return
 				cap = cargownd.GetCapacity()
@@ -504,12 +417,12 @@ try:
 		@safetycheck
 		def Mine(self):
 			self.MineLock = 1
-			# we need to check if we have at least 3 targets in range
 			overview = sm.GetService('window').GetWindow('OverView')
 			scrollnodes = overview.sr.scroll.GetNodes()
 			if scrollnodes is not None:
 				if len(scrollnodes) < 6:
-				# we need to warp to a better belt
+				# we need to warp to a better belt, and tag this one bad
+					self.bmsToSkip.append(self.currentBM)
 					self.WarpToBelt()
 					self.MineLock = 0
 					return
@@ -532,6 +445,7 @@ try:
 							msg('warp error')
 						self.MineLock = 0
 						return
+   					# we need to check if target is in range, if not, we should warp off
 					elif (dist <= const.minWarpDistance) and (dist > 15000):
 						self.WarpToBelt()
 						self.MineLock = 0
@@ -553,9 +467,9 @@ try:
 									if i >= 6:
 										break
 									Sleep(250)
-						Sleep(random.randrange(1000,2000))
+						Sleep(random.randrange(2000,3000))
 						# now we need to worry about activating all modules
-						if len(targetsvc.GetTargets()) >= 3:
+						if len(targetsvc.GetTargets()) >= 1:
 							modulelist = []
 							deactivate = []
 		  					for i in xrange(0, 8):
@@ -565,12 +479,15 @@ try:
 								 		#we need to activate the module
 										modulelist.append(slot.sr.module)
 									else:
-										if (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
-											deactivate.append(slot.sr.module)
+										try:
+											if (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
+												deactivate.append(slot.sr.module)
+										except:
+											pass
 							for each in modulelist:
 								try:
 									uthread.new(each.Click)
-									Sleep(random.randrange(1000,1500))
+									Sleep(random.randrange(500,1000))
 									self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
 									targetsvc.SelectNextTarget()
 								except:
@@ -588,24 +505,32 @@ try:
 		def WarpToBelt(self):
 			# courtesy delay
 			Sleep(1000)
-			absvc = sm.GetService('addressbook')
-			bookmarks = absvc.GetBookmarks()
-			bms = list()
-			for each in bookmarks.itervalues():
-				if each.locationID == session.solarsystemid:
-					bms.append(each)
-			randomidx = random.randrange(0, 6)
 			try:
+				absvc = sm.GetService('addressbook')
+				bookmarks = absvc.GetBookmarks()
+				if len(self.bmsToSkip) >= 7:
+					msg('all belts are depleted!')
+					self.state = STATE_HIBERNATE
+					return
+				bms = list()
+				for each in bookmarks.itervalues():
+					if each.locationID == session.solarsystemid:
+						bms.append(each)
+				randomidx = random.randrange(0, 6)
+				# we need to reroll a bm if this one is bad
+				while (bms[randomidx] in self.bmsToSkip):
+					randomidx = random.randrange(0, 6)
+				self.currentBM = bms[randomidx]
 				sm.GetService('menu').WarpToBookmark(bms[randomidx], 0.0, False)
 			except:
-				msg('error warping to belt')
+				msg('cannot warp to belt')
 
 		@safetycheck
 		def DockUp(self):
 			try:
 				sm.GetService('menu').Dock(self.station)
 			except:
-				msg('error in dockup')
+				msg('cannot dock yet')
 				self.updateSkip += 5
 
 		@safetycheck
@@ -616,7 +541,7 @@ try:
   				uicore.cmd.CmdExitStation()
 				Sleep(random.randrange(15000, 20000))
 			except:
-				msg('error in undock')
+				msg('cannot undock')
 			self.UndockLock = 0
 
 		@safetycheck
@@ -627,7 +552,7 @@ try:
 				if cargo and hangar:
 					hangar.OnDropDataWithIdx(cargo.sr.scroll.GetNodes())
 			except:
-				pass
+				msg('cannot unload')
 
 		@safetycheck
 		def ModulesActive(self):
@@ -700,7 +625,7 @@ try:
 				self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=200, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
-				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.25))
+				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
 				frame = uicls.Frame(parent=self, color=(0.0, 0.0, 0.0, 0.75), frameConst=uiconst.FRAME_FILLED_CORNER1, state=uiconst.UI_DISABLED)
 
 			def ShowMsg(self, location, state):
