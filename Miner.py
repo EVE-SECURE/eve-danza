@@ -484,7 +484,7 @@ try:
 							for node in scrollnodes:
 									try:
 										nodeball = bp.GetBall(node.slimItem().itemID)
-										if nodeball.surfaceDist < 28000:
+										if nodeball.surfaceDist < 20000:
 											targetsvc.TryLockTarget(node.slimItem().itemID)
 									except:
 										msg('error in targetting')
@@ -562,12 +562,16 @@ try:
 						bms.append(each)
 				# getting rid of the bms that we need to skip
 				if len(bms) > 0:
-					randomidx = random.randrange(0, len(bms)-1)
+					if len(bms) == 1:
+						randomidx = 0
+					else:
+						randomidx = random.randrange(0, len(bms)-1)
 					self.currentBM = bms[randomidx].bookmarkID
 					sm.GetService('menu').WarpToBookmark(bms[randomidx], 0.0, False)
 					Sleep(10000)
 			except:
 				msg('cannot warp to belt')
+				Sleep(10000)
 
 			self.WarpLock = 0
 
@@ -819,13 +823,13 @@ try:
 		btn = uix.GetBigButton(32, neocomwnd, top=833)
 		btn.OnClick = DestroyIt
 		btn.hint = "Kill Miner service"
-		btn.sr.icon.LoadIcon('40_13')
+		btn.sr.icon.LoadIcon('40_15')
 		destroyBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=866)
 		btn.OnClick = ToggleIt
 		btn.hint = "Toggle Dash"
-		btn.sr.icon.LoadIcon('40_12')
+		btn.sr.icon.LoadIcon('40_16')
 		actionBtn = btn
 
 	except:
