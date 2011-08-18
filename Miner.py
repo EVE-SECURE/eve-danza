@@ -451,6 +451,9 @@ try:
 						nearNode = node
 						break
 					nearBall = bp.GetBall(nearNode.slimItem().itemID)
+					if nearBall == None:
+						self.MineLock = 0
+						return
 					dist = trinity.TriVector(nearBall.x - myBall.x, nearBall.y - myBall.y, nearBall.z - myBall.z).Length()
 					if dist >= const.minWarpDistance:
 						# we need to warp to the asteroid first
@@ -475,7 +478,7 @@ try:
 						if len(targets) < 6:
    							overview = sm.GetService('window').GetWindow('OverView')
 							scrollnodes = overview.sr.scroll.GetNodes()
-							upto = len(scrollnodes)
+							upto = min(len(scrollnodes), 6)
 							# we need to acquire new targets until we have 3
 							i = 0
 							for node in scrollnodes:
@@ -515,7 +518,7 @@ try:
 										Sleep(random.randrange(500,1000))
 										self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
 									elif eachball.surfaceDist < 20000:
-										sm.GetService('michelle').GetBallpark().FollowBall(targetID, 0.0)
+										sm.GetService('cmd').CmdApproachItem()
 									targetsvc.SelectNextTarget()
 								except:
 									msg('error in activating modules')
