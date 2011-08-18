@@ -561,6 +561,7 @@ try:
 		@safetycheck
 		def Undock(self):
 			self.UndockLock = 1
+			self.runCount += 1
 			try:
 				Sleep(random.randrange(25000, 30000))
   				uicore.cmd.CmdExitStation()
@@ -663,7 +664,6 @@ try:
 				msg('error in refilling crystals')
 
 			# updating run stats
-			uthread.new(self.UpdateStats)
 			self.RefillLock = 0
 
 		@safetycheck
