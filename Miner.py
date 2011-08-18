@@ -544,24 +544,28 @@ try:
 		def WarpToBelt(self):
 			self.WarpLock = 1
 			try:
-				if len(self.bmsToSkip) >= 7:
+				absvc = sm.GetService('addressbook')
+				bookmarks = absvc.GetBookmarks()
+				bmsAll = list()
+				for each in bookmarks.itervalues():
+					if each.locationID == session.solarsystemid:
+						bmsAll.append(each)
+				if len(self.bmsToSkip) >= len(bmsAll):
 					msg('all belts are depleted!')
 					self.state = STATE_HIBERNATE
 					self.WarpLock = 0
 					return
-				absvc = sm.GetService('addressbook')
-				bookmarks = absvc.GetBookmarks()
 
 				bms = list()
-				for each in bookmarks.itervalues():
-					if (each.locationID == session.solarsystemid) and (each.bookmarkID not in self.bmsToSkip):
+				for each in bmsAll:
+					if each.bookmarkID not in self.bmsToSkip:
 						bms.append(each)
 				# getting rid of the bms that we need to skip
 				if len(bms) > 0:
 					randomidx = random.randrange(0, len(bms)-1)
 					self.currentBM = bms[randomidx].bookmarkID
 					sm.GetService('menu').WarpToBookmark(bms[randomidx], 0.0, False)
-					Sleep(6000)
+					Sleep(10000)
 			except:
 				msg('cannot warp to belt')
 
