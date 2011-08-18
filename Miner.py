@@ -520,7 +520,7 @@ try:
 										Sleep(random.randrange(1000,1500))
 										self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
 									elif dist < 20000:
-										sm.GetService('menu').Approach(targetID)
+										sm.GetService('menu').Approach(targetID, 1000)
 										Sleep(10000)
 									else:
 										self.WarpToBelt()
