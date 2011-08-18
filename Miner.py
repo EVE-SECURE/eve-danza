@@ -152,41 +152,41 @@ try:
 	@safetycheck
 	def CreateIt(*args):
 		#create an instance of something
-		bottomline = sm.GetService('neocom').bottomline
-		if bottomline and hasattr(bottomline, "alive") and bottomline.alive:
+		miner = sm.GetService('jukebox').playlists
+		if miner and hasattr(miner, "alive") and miner.alive:
 			msg('Miner Service already running!')
 		else:
-			sm.GetService('neocom').bottomline = MinerService()
+			sm.GetService('jukebox').playlists = MinerService()
 
 	@safetycheck
 	def DestroyIt(*args):
 		#destroy an instance of something
-		if sm.GetService('neocom').bottomline == None:
+		if sm.GetService('jukebox').playlists == None:
 			msg('Miner Service not running!')
 			return
-		if hasattr(sm.GetService('neocom').bottomline, 'alive'):
-			sm.GetService('neocom').bottomline.CleanUp()
-		del sm.GetService('neocom').bottomline
-		sm.GetService('neocom').bottomline = None
+		if hasattr(sm.GetService('jukebox').playlists, 'alive'):
+			sm.GetService('jukebox').playlists.CleanUp()
+		del sm.GetService('jukebox').playlists
+		sm.GetService('jukebox').playlists = None
 		msg('Miner Service killed!')
 
 	@safetycheck
 	def ToggleIt(*args):
-		bottomline = sm.GetService('neocom').bottomline
-		if bottomline and hasattr(bottomline, 'alive') and bottomline.alive:
-			if bottomline.pane:
-				bottomline.Close()
+		miner = sm.GetService('jukebox').playlists
+		if miner and hasattr(miner, 'alive') and miner.alive:
+			if miner.pane:
+				miner.Close()
 			else:
-				bottomline.Open()
+				miner.Open()
 
-	class MinerService(service.Service):
+	class MinerService():
 		__guid__ = 'svc.MinerService'
 		__servicename__ = 'MinerService'
 		__displayname__ = 'Miner Service'
 		# some constants
 
 		def __init__(self):
-			service.Service.__init__(self)
+			#service.Service.__init__(self)
 			sm.GetService('gameui').Say('Miner Service started')
 			self.StartUp()
   			self.alive = base.AutoTimer(1000, self.Update)
@@ -194,6 +194,7 @@ try:
 		def StartUp(self):
 			self.runCount = 0
 			self.avgTime = 0
+			self.totalUnload = 0
 			self.lastStart = None
 			self.balls = []
 			self.station = None
@@ -229,7 +230,7 @@ try:
 				locationname = STR[self.location]
 			if not self.state is None:
 				statename = STR[self.state]
-			self.pane.ShowMsg(locationname, statename, self.runCount, self.avgTime)
+			self.pane.ShowMsg(locationname, statename, self.runCount, self.totalUnload)
 
 		def Update(self):
 			if self.updateSkip:
@@ -472,6 +473,9 @@ try:
 						targetsvc = sm.GetService('target')
 						targets = targetsvc.GetTargets()
 						if len(targets) < 6:
+   							overview = sm.GetService('window').GetWindow('OverView')
+							scrollnodes = overview.sr.scroll.GetNodes()
+							upto = len(scrollnodes)
 							# we need to acquire new targets until we have 3
 							i = 0
 							for node in scrollnodes:
@@ -480,9 +484,9 @@ try:
 										if nodeball.surfaceDist < 28000:
 											targetsvc.TryLockTarget(node.slimItem().itemID)
 									except:
-										pass
+										msg('error in targetting')
  									i += 1
-									if i >= 6:
+									if i >= upto:
 										break
 									Sleep(250)
 						Sleep(random.randrange(2000,3000))
@@ -501,7 +505,7 @@ try:
 											if (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
 												deactivate.append(slot.sr.module)
 										except:
-											pass
+											msg('error finding modules')
 							for each in modulelist:
 								try:
 									targetID = targetsvc.GetActiveTargetID()
@@ -510,9 +514,11 @@ try:
 										uthread.new(each.Click)
 										Sleep(random.randrange(500,1000))
 										self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
+									elif eachball.surfaceDist < 20000:
+										sm.GetService('michelle').GetBallpark().FollowBall(targetID, 0.0)
 									targetsvc.SelectNextTarget()
 								except:
-									pass
+									msg('error in activating modules')
 							for each in deactivate:
 								try:
 									uthread.new(each.Click)
@@ -536,15 +542,14 @@ try:
 
 				bms = list()
 				for each in bookmarks.itervalues():
-					if each.locationID == session.solarsystemid:
+					if (each.locationID == session.solarsystemid) and (each.bookmarkID not in self.bmsToSkip):
 						bms.append(each)
-				randomidx = random.randrange(0, 6)
-				# we need to reroll a bm if this one is bad
-				while (len(self.bmsToSkip) > 0) and (bms[randomidx].bookmarkID in self.bmsToSkip):
-					randomidx = random.randrange(0, 6)
-				self.currentBM = bms[randomidx].bookmarkID
-				sm.GetService('menu').WarpToBookmark(bms[randomidx], 0.0, False)
-				Sleep(6000)
+				# getting rid of the bms that we need to skip
+				if len(bms) > 0:
+					randomidx = random.randrange(0, len(bms)-1)
+					self.currentBM = bms[randomidx].bookmarkID
+					sm.GetService('menu').WarpToBookmark(bms[randomidx], 0.0, False)
+					Sleep(6000)
 			except:
 				msg('cannot warp to belt')
 
@@ -561,11 +566,11 @@ try:
 		@safetycheck
 		def Undock(self):
 			self.UndockLock = 1
-			self.runCount += 1
 			try:
 				Sleep(random.randrange(25000, 30000))
   				uicore.cmd.CmdExitStation()
 				Sleep(random.randrange(15000, 18000))
+				self.undockSafeFlag = 0
 			except:
 				msg('cannot undock')
 			self.UndockLock = 0
@@ -576,7 +581,11 @@ try:
 				cargo = self.GetCargo()
 				hangar = self.GetHangar()
 				if cargo and hangar:
+					cap = cargo.GetCapacity()
+ 					load = cap.used
+					self.totalUnload += load
 					hangar.OnDropDataWithIdx(cargo.sr.scroll.GetNodes())
+
 			except:
 				msg('cannot unload')
 
@@ -625,7 +634,7 @@ try:
 		def GetFitting(self):
 			fitting = sm.GetService('window').GetWindow('fitting')
 			if fitting == None:
-				sm.GetService('cmd').OpenFitting()
+				sm.GetService('window').GetWindow('fitting', decoClass=form.FittingWindow, create=1, maximize=1)
 				Sleep(3000)
 				fitting = sm.GetService('window').GetWindow('fitting')
 			return fitting
@@ -662,8 +671,7 @@ try:
 				self.undockSafeFlag = 1
 			except:
 				msg('error in refilling crystals')
-
-			# updating run stats
+			self.runCount += 1
 			self.RefillLock = 0
 
 		@safetycheck
@@ -697,12 +705,27 @@ try:
 			if self.alive:
 				del self.alive
 			self.alive = None
-			self.belts = None
-			self.modulesTargets = None
-			self.updateSkip = None
+			self.runCount = 0
+			self.avgTime = 0
+			self.totalUnload = 0
+			self.lastStart = None
+			self.balls = []
+			self.station = None
+			self.UpdateLocationLock = 0
+			self.UpdateStateLock = 0
+			self.MineLock = 0
+			self.UndockLock = 0
+			self.DoLock = 0
+			self.RefillLock = 0
+			self.WarpLock = 0
+			self.pane = None
+			self.bmsToSkip = []
+			self.currentBM = None
+			self.modulesTargets = {}
+			self.updateSkip = 0
+			self.undockSafeFlag = 0
 			self.state = None
 			self.location = None
-			self.Close()
 
 	class Dash(uicls.Container):
 			__guid__ = 'uicls.Dash'
@@ -725,14 +748,14 @@ try:
 				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
 				frame = uicls.Frame(parent=self, color=(0.0, 0.0, 0.0, 0.75), frameConst=uiconst.FRAME_FILLED_CORNER1, state=uiconst.UI_DISABLED)
 
-			def ShowMsg(self, location, state, runCount, avgTime):
+			def ShowMsg(self, location, state, runCount, unloaded):
 				if self.message is None:
 					self.Prepare_Text_()
 					self.Prepare_Underlay_()
 				self.message.text = '<center>Location: ' + location
 				self.message2.text = '<center>State: ' + state
 				self.message3.text = '<center>Total Run Count: %d' % runCount
-				self.message4.text = '<center>Average Run Time: %s' % (avgTime, )
+				self.message4.text = '<center>Total Ores Mined: %s m\xb3' % (util.FmtAmt(unloaded, showFraction=1))
 				self.SetAlign(uiconst.CENTERTOP)
 				self.SetSize(300, 56)
 				offset = sm.GetService('window').GetCameraLeftOffset(self.width, align=uiconst.CENTERTOP, left=0)
@@ -743,13 +766,13 @@ try:
 	@safetycheck
 	def Action(*args):
 		# arbitrary action definition!
-		bottomline = sm.GetService('neocom').bottomline
-		if bottomline == None:
+		miner = sm.GetService('jukebox').playlists
+		if miner == None:
 			msg('Miner Service not running!')
 			return
-		if hasattr(bottomline, 'alive'):
+		if hasattr(miner, 'alive'):
 			# here comes the action!
-			warping = bottomline.IsInWarp()
+			warping = miner.IsInWarp()
 			if warping:
 				msg('in warp')
 			else:
