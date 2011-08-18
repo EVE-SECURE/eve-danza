@@ -488,6 +488,7 @@ try:
 											targetsvc.TryLockTarget(node.slimItem().itemID)
 									except:
 										msg('error in targetting')
+										Sleep(3000)
  									i += 1
 									if i >= upto:
 										break
@@ -512,20 +513,28 @@ try:
 							for each in modulelist:
 								try:
 									targetID = targetsvc.GetActiveTargetID()
-									eachball = sm.GetService('michelle').GetBallpark().GetBall(targetID)
-									if eachball.surfaceDist < 15000:
+									eachBall = sm.GetService('michelle').GetBallpark().GetBall(targetID)
+									dist = trinity.TriVector(eachBall.x - myBall.x, eachBall.y - myBall.y, eachBall.z - myBall.z).Length()
+									if dist < 15000:
 										uthread.new(each.Click)
-										Sleep(random.randrange(500,1000))
+										Sleep(random.randrange(1000,1500))
 										self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
-									elif eachball.surfaceDist < 20000:
-										sm.GetService('cmd').CmdApproachItem()
+									elif dist < 20000:
+										sm.GetService('menu').Approach(targetID)
+										Sleep(10000)
+									else:
+										self.WarpToBelt()
+										Sleep(10000)
+										self.MineLock = 0
+										return
 									targetsvc.SelectNextTarget()
 								except:
 									msg('error in activating modules')
+									Sleep(5000)
 							for each in deactivate:
 								try:
 									uthread.new(each.Click)
-									Sleep(random.randrange(500,1000))
+									Sleep(random.randrange(200,800))
 									self.modulesTargets[each.id] = None
 								except:
 									pass
@@ -800,19 +809,19 @@ try:
 		btn = uix.GetBigButton(32, neocomwnd, top=800)
 		btn.OnClick = CreateIt
 		btn.hint = "Start Miner service"
-		btn.sr.icon.LoadIcon('11_01')
+		btn.sr.icon.LoadIcon('40_14')
 		createBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=833)
 		btn.OnClick = DestroyIt
 		btn.hint = "Kill Miner service"
-		btn.sr.icon.LoadIcon('11_02')
+		btn.sr.icon.LoadIcon('40_13')
 		destroyBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=866)
 		btn.OnClick = ToggleIt
 		btn.hint = "Toggle Dash"
-		btn.sr.icon.LoadIcon('11_03')
+		btn.sr.icon.LoadIcon('40_12')
 		actionBtn = btn
 
 	except:
