@@ -590,6 +590,7 @@ try:
 				Sleep(random.randrange(25000, 30000))
   				uicore.cmd.CmdExitStation()
 				Sleep(random.randrange(15000, 18000))
+ 				self.runCount += 1
 				self.undockSafeFlag = 0
 			except:
 				msg('cannot undock')
@@ -687,11 +688,10 @@ try:
 						item = crystals.pop()
 						slot.shell.inventory.Add(item.itemID, item.locationID, qty=1, flag=slot.locationFlag)
 						msg('loaded a crystal into slot%d' % slot.id)
-						Sleep(1000)
+						Sleep(2000)
 				self.undockSafeFlag = 1
 			except:
 				msg('error in refilling crystals')
-			self.runCount += 1
 			self.RefillLock = 0
 
 		@safetycheck
