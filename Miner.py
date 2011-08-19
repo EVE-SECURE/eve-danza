@@ -688,7 +688,7 @@ try:
 						item = crystals.pop()
 						slot.shell.inventory.Add(item.itemID, item.locationID, qty=1, flag=slot.locationFlag)
 						msg('loaded a crystal into slot%d' % slot.id)
-						Sleep(2000)
+						Sleep(3000)
 				self.undockSafeFlag = 1
 			except:
 				msg('error in refilling crystals')
