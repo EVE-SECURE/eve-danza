@@ -432,7 +432,8 @@ try:
 			overview = sm.GetService('window').GetWindow('OverView')
 			scrollnodes = overview.sr.scroll.GetNodes()
 			if scrollnodes is not None:
-				if len(scrollnodes) < 6:
+				targets = sm.GetService('target').GetTargets()
+				if (len(scrollnodes)) < 6 and (len(targets) == 0):
 				# we need to warp to a better belt, and tag this one bad
 					if not self.WarpLock:
 						if self.currentBM not in self.bmsToSkip:
@@ -459,7 +460,7 @@ try:
 						# we need to warp to the asteroid first
 						try:
 							sm.GetService('menu').WarpToItem(nearNode.slimItem().itemID, 0)
-							Sleep(1000)
+							Sleep(10000)
 						except:
 							msg('warp error')
 						self.MineLock = 0
@@ -483,9 +484,12 @@ try:
 							i = 0
 							for node in scrollnodes:
 									try:
-										nodeball = bp.GetBall(node.slimItem().itemID)
-										if nodeball.surfaceDist < 20000:
+										nodeBall = bp.GetBall(node.slimItem().itemID)
+										dist = trinity.TriVector(nodeBall.x - myBall.x, nodeBall.y - myBall.y, nodeBall.z - myBall.z).Length()
+										if dist < 20000:
 											targetsvc.TryLockTarget(node.slimItem().itemID)
+											if dist > 15000:
+												sm.GetService('menu').Approach(node.slimItem().itemID, 1000)
 									except:
 										msg('error in targetting')
 										Sleep(3000)
@@ -495,7 +499,7 @@ try:
 									Sleep(250)
 						Sleep(random.randrange(2000,3000))
 						# now we need to worry about activating all modules
-						if len(targetsvc.GetTargets()) >= 3:
+						if len(targetsvc.GetTargets()) >= 1:
 							modulelist = []
 							deactivate = []
 		  					for i in xrange(0, 8):
@@ -523,9 +527,10 @@ try:
 										sm.GetService('menu').Approach(targetID, 1000)
 										Sleep(10000)
 									else:
-										self.WarpToBelt()
-										Sleep(10000)
-										self.MineLock = 0
+										if (not self.WarpLock):
+											self.WarpToBelt()
+											Sleep(10000)
+											self.MineLock = 0
 										return
 									targetsvc.SelectNextTarget()
 								except:
@@ -539,6 +544,7 @@ try:
 								except:
 									pass
 						self.MineLock = 0
+
 
 		@safetycheck
 		def WarpToBelt(self):

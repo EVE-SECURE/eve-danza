@@ -663,3 +663,73 @@ def InitDirectionLines(self):
     self.direction.AddLine((0.0, 0.0, 0.0), color, (1.0, 1.0, 1.0), color)
     self.direction.display = False
     self.direction.SubmitChanges()
+
+# command service drone functions
+def CmdDronesEngage(self, *args):
+    drones = sm.GetService('michelle').GetDrones()
+    if drones is None:
+        return
+    droneIDs = drones.keys()
+    targetID = sm.GetService('target').GetActiveTargetID()
+    entity = moniker.GetEntityAccess()
+    if entity:
+        sm.GetService('menu').EngageTarget(droneIDs)
+
+def CmdDronesReturnAndOrbit(self, *args):
+    drones = sm.GetService('michelle').GetDrones()
+    if not drones:
+        return
+    droneIDs = drones.keys()
+    targetID = sm.GetService('target').GetActiveTargetID()
+    entity = moniker.GetEntityAccess()
+    if entity:
+        ret = entity.CmdReturnHome(droneIDs)
+        sm.GetService('menu').HandleMultipleCallError(droneIDs, ret, 'MultiDroneCmdResult')
+        if droneIDs and targetID:
+            eve.Message('Command', {'command': mls.UI_INFLIGHT_ALLDRONESRETURNINGANDORBITING})
+
+def CmdDronesReturnToBay(self, *args):
+    drones = sm.GetService('michelle').GetDrones()
+    if not drones:
+        return
+    droneIDs = drones.keys()
+    targetID = sm.GetService('target').GetActiveTargetID()
+    entity = moniker.GetEntityAccess()
+    if entity:
+        ret = entity.CmdReturnBay(droneIDs)
+        sm.GetService('menu').HandleMultipleCallError(droneIDs, ret, 'MultiDroneCmdResult')
+        if droneIDs and targetID:
+            eve.Message('Command', {'command': mls.UI_INFLIGHT_ALLDRONESRETURNINGTOBAY})
+
+def OpenDroneBayOfActiveShip(self, *args):
+    if eve.session.shipid and eve.session.stationid:
+        uthread.new(self._EveCommandService__OpenDroneBayOfActiveShip_thread).context = 'cmd.OpenDroneBayOfActiveShip'
+
+def __OpenDroneBayOfActiveShip_thread(self, *args):
+    if eve.session.shipid and eve.session.stationid:
+        name = cfg.evelocations.Get(eve.session.shipid).name
+        sm.GetService('window').OpenDrones(eve.session.shipid, name, "%s's drone bay" % name)
+
+def OpenCargoHoldOfActiveShip(self, *args):
+    if eve.session.shipid:
+        uthread.new(self._EveCommandService__OpenCargoHoldOfActiveShip_thread).context = 'cmd.OpenCargoHoldOfActiveShip'
+
+#############################################
+# base_fitting.py
+# form.Fitting
+def OnDropData(self, dragObj, nodes):
+    for node in nodes:
+        if node.Get('__guid__', None) in ('xtriui.InvItem', 'listentry.InvItem', 'listentry.InvFittingItem'):
+            requiredSkills = sm.GetService('info').GetRequiredSkills(node.rec.typeID)
+            for (skillID, level,) in requiredSkills:
+                if getattr(sm.GetService('skills').HasSkill(skillID), 'skillLevel', 0) < level:
+                    sm.GetService('tutorial').OpenTutorialSequence_Check(uix.skillfittingTutorial)
+                    break
+
+
+    sm.GetService('menu').TryFit([ node.rec for node in nodes ])
+# form.Fitting's slots:
+self.slots
+# slot class:
+def IsChargeEmpty(self):
+    return self.charge is None
