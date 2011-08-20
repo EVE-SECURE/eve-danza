@@ -139,7 +139,6 @@ try:
 			d = trinity.TriVector(x, y, 1.0)
 			if ownBall and rbp is not None:
 				if not sm.GetService('autoPilot').GetState():
-					# changing direction according to the button we have pressed down
 					currentDirection = ownBall.GetQuaternionAt(blue.os.GetTime())
 					d.TransformQuaternion(currentDirection)
 					rbp.GotoDirection(d.x, d.y, d.z)
@@ -154,7 +153,6 @@ try:
 
 	@safetycheck
 	def CreateIt(*args):
-		#create an instance of something
 		bottomline = sm.GetService('neocom').bottomline
 		if bottomline and hasattr(bottomline, "alive") and bottomline.alive:
 			msg('Steer Service already running!')
@@ -163,7 +161,6 @@ try:
 
 	@safetycheck
 	def DestroyIt(*args):
-		#destroy an instance of something
 		if sm.GetService('neocom').bottomline == None:
 			msg('LocalWatch Service not running!')
 			return
@@ -174,13 +171,7 @@ try:
 		msg('Steer Service killed!')
 
 	try:
-		"""
-		#DisableLog()
-		#sm.GetService('cmd').OpenUIDebugger()
 
-		#old_UpdateMovement = sm.GetService('cmd')._UpdateMovement
-		#sm.GetService('mouseInput').OnDoubleClick = MyOnDoubleClick
-		"""
 		neocomwnd = sm.GetService('neocom').main
 		btn = uix.GetBigButton(32, neocomwnd, top=800)
 		btn.OnClick = CreateIt
@@ -193,8 +184,6 @@ try:
 		btn.hint = "Kill LocalWatch service"
 		btn.sr.icon.LoadIcon('10_02')
 		destroyBtn = btn
-
-
 
 	except:
 		msg('bad inject')
