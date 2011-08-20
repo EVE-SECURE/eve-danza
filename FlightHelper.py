@@ -67,33 +67,7 @@ try:
 	def randomPause(fromtime = 0, totime = 1000):
 		return random.randrange(fromtime, totime)
 
-	@safetycheck
-	def MyMove(direction):
-		try:
-		 	#bp = sm.GetService('michelle').GetBallpark()
-			#rbp = sm.GetService('michelle').GetRemotePark()
-			#if bp is None or rbp is None:
-			#	return
-			#ownBall = bp.GetBall(eve.session.shipid)
-			if direction == const.MOVDIR_FORWARD:
-	   			msg('up')
-				d = trinity.TriVector(0.0, -1.0, 1.0)
-			elif direction == const.MOVDIR_BACKWARD:
-				msg('down')
-				d = trinity.TriVector(0.0, 1.0, 1.0)
-			elif direction == const.MOVDIR_LEFT:
-				msg('left')
-				d = trinity.TriVector(-1.0, 0.0, 1.0)
-			elif direction == const.MOVDIR_RIGHT:
-				msg('right')
-				d = trinity.TriVector(1.0, 0.0, 1.0)
-			#currentDirection = ownBall.GetQuaternionAt(blue.os.GetTime())
-			#direction.TransformQuaternion(currentDirection)
-			#rbp.GotoDirection(direction.x, direction.y, direction.z)
-		except:
-			msg('MyMove error')
-
-	class SteerService(service.Service):
+	class SteerService():
 		__guid__ = 'svc.SteerService'
 		__servicename__ = 'SteerService'
 		__displayname__ = 'Steer Service'
@@ -173,21 +147,9 @@ try:
 				rbp.SetSpeedFraction(ownBall.speedFraction)
 			self.busy = 0
 
-		def Open(self):
-			if self.pane:
-				return
-			self.initPane()
-
-		def Close(self):
-			self.Reset()
-
-		def Reset(self):
-			pass
-
 		def CleanUp(self):
 			del self.alive
 			self.alive = None
-			self.Reset()
 
 
 	@safetycheck
@@ -211,15 +173,6 @@ try:
 		sm.GetService('neocom').bottomline = None
 		msg('Steer Service killed!')
 
-	@safetycheck
-	def ToggleIt(*args):
-		bottomline = sm.GetService('neocom').bottomline
-		if bottomline and hasattr(bottomline, 'alive') and bottomline.alive:
-			if bottomline.pane:
-				bottomline.Close()
-			else:
-				bottomline.Open()
-
 	try:
 		"""
 		#DisableLog()
@@ -241,11 +194,6 @@ try:
 		btn.sr.icon.LoadIcon('10_02')
 		destroyBtn = btn
 
-		btn = uix.GetBigButton(32, neocomwnd, top=866)
-		btn.OnClick = ToggleIt
-		btn.hint = "Show LocalDash"
-		btn.sr.icon.LoadIcon('10_03')
-		killBtn = btn
 
 
 	except:
