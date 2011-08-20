@@ -1,41 +1,12 @@
 try:
-	import service
-	import uix
-	import uiutil
-	import mathUtil
 	import blue
-	import uthread
 	import xtriui
 	import form
-	import triui
-	import trinity
-	import util
-	import draw
-	import sys
-	import types
 	import uicls
 	import uiconst
-	import time
-	import stackless
 	import functools
-	import listentry
-	import base
-	import math
-	import geo2
-	import vivoxConstants
-	import re
-	import chat
-	from itertools import izip, imap
-	from math import pi, cos, sin, sqrt
-	from foo import Vector3
-	from mapcommon import SYSTEMMAP_SCALE
 	from traceback import format_exception
-	import state
-	import random
-	import spaceObject
-	import blue
-	import timecurves
-	import copy
+
 
 	def safetycheck(func):
 		def wrapper(*args, **kwargs):
