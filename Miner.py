@@ -37,6 +37,9 @@ try:
 	import blue
 	import timecurves
 	import copy
+	import cStringIO
+	import collections
+	import os
 
 	STATE_IDLESPACE = 0
 	STATE_UNLOADSTATION = 1
@@ -566,7 +569,7 @@ try:
 										self.modulesTargets[each.id] = targetsvc.GetActiveTargetID()
 									elif dist < 20000:
 										sm.GetService('menu').Approach(targetID, 1000)
-										Sleep(10000)
+										Sleep(5000)
 									else:
 										if (not self.WarpLock):
 											self.WarpToBelt()
@@ -761,16 +764,40 @@ try:
 
 		@safetycheck
 		def ClearStats(self):
-			# add code for saving stats to file later!!!!
+			self.LogToFile()
 			self.runCount = 0
 			self.bmsToSkip = list()
 			self.totalUnload = 0
 			settings.public.ui.Set("MinerStats", None)
-			currentTime = blue.os.GetTime()
-			settings.public.ui.Set("MinerLastStart", currentTime)
-			self.lastStart = currentTime
+			now = blue.os.GetTime()
+			settings.public.ui.Set("MinerLastStart", now)
+			self.lastStart = now
 			self.UpdatePane()
 			msg('Miner stats cleared!')
+
+		@safetycheck
+		def LogToFile(self):
+			path = 'c:/Users/Public/'
+			if not os.path.exists(path):
+				os.makedirs(path)
+	  		filename = 'logfile.txt'
+			sio = cStringIO.StringIO()
+			sio.write('\n')
+			now = blue.os.GetTime()
+			if self.lastStart == None:
+				self.lastStart = now
+			sessionInfo = '---Session from  %s  to  %s---\n' % (util.FmtDate(self.lastStart), util.FmtDate(now))
+			sio.write(sessionInfo)
+			durationText = FormatTimeAgo(self.lastStart)
+			durationText = durationText[:-4]
+			sio.write('Run duration:  %s\n' % durationText)
+			sio.write('Runs completed:  %s\n' % self.runCount)
+			sio.write('Number of belts depleted:  %s\n' % len(self.bmsToSkip))
+			sio.write('Total ores mined:  %s m3\n' % self.totalUnload)
+			sio.write('\n')
+			with open(path+filename, 'a') as f:
+				f.write(sio.getvalue())
+			f.close()
 
 
 		def Open(self):
@@ -835,7 +862,7 @@ try:
 				self.message3 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 				self.message4 = uicls.Label(text='', parent=self, left=0, top=40, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 				self.message5 = uicls.Label(text='', parent=self, left=0, top=52, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message6 = uicls.Label(text='', parent=self, left=0, top=66, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message6 = uicls.Label(text='', parent=self, left=0, top=70, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
 				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
@@ -845,14 +872,14 @@ try:
 				if self.message is None:
 					self.Prepare_Text_()
 					self.Prepare_Underlay_()
-				self.message.text = '<left> Location: ' + location
-				self.message2.text = '<left> State: ' + state
-				self.message3.text = '<right>Total Run Count: %d ' % runCount
-				self.message4.text = '<right>Number of belts currently being skipped: %d ' % skipNum
-				self.message5.text = '<right>Total Ores Mined: %s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
+				self.message.text = '<left> Location: <color=0xffffff00>%s' % location
+				self.message2.text = '<left> State: <color=0xff00ffff>%s' % state
+				self.message3.text = '<right>Total Run Count: <color=0xff00ff37>%d ' % runCount
+				self.message4.text = '<right>Number of belts currently being skipped: <color=0xff00ff37>%d ' % skipNum
+				self.message5.text = '<right>Total Ores Mined: <color=0xff00ff37>%s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
 				self.message6.text = '<center>Current stats logged from: %s' % statsTime
 				self.SetAlign(uiconst.CENTERTOP)
-				self.SetSize(400, 84)
+				self.SetSize(400, 86)
 				offset = sm.GetService('window').GetCameraLeftOffset(self.width, align=uiconst.CENTERTOP, left=0)
 				self.SetPosition(offset, 5)
 				self.state = uiconst.UI_DISABLED
@@ -875,36 +902,24 @@ try:
 
 
 	try:
-		#uthread.new(Report)
-		#cargo = GetCargo()
-		#hangar = GetHangar()
-		#if cargo and hangar:
-		#	hangar.OnDropDataWithIdx(cargo.sr.scroll.GetNodes())
-		#shipui = uicore.layer.shipui
-		#slot1 = shipui.sr.slotsByOrder.get((0, 0), None)
-		#slot2 = shipui.sr.slotsByOrder.get((0, 1), None)
-		#msg('slot1 state: %s, slot2 state: %s' % (slot1.sr.module.def_effect.isActive, slot2.sr.module.def_effect.isActive))
 
-		#uthread.new(DockUp)
-		#uthread.new(WarpRandomBelt)
-		#uthread.new(GetLocation)
 		neocomwnd = sm.GetService('neocom').main
 		btn = uix.GetBigButton(32, neocomwnd, top=800)
 		btn.OnClick = CreateIt
 		btn.hint = "Start Miner service"
-		btn.sr.icon.LoadIcon('11_11')
+		btn.sr.icon.LoadIcon('11_12')
 		createBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=833)
 		btn.OnClick = DestroyIt
 		btn.hint = "Kill Miner service"
-		btn.sr.icon.LoadIcon('11_12')
+		btn.sr.icon.LoadIcon('11_13')
 		destroyBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=866)
 		btn.OnClick = ClearIt
 		btn.hint = "Clear stats"
-		btn.sr.icon.LoadIcon('11_13')
+		btn.sr.icon.LoadIcon('11_14')
 		actionBtn = btn
 
 	except:
