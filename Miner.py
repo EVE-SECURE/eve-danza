@@ -459,7 +459,7 @@ try:
 					if dist >= const.minWarpDistance:
 						# we need to warp to the asteroid first
 						try:
-							sm.GetService('menu').WarpToItem(nearNode.slimItem().itemID, 0)
+							sm.GetService('menu').WarpToItem(nearNode.slimItem().itemID, 2000)
 							Sleep(10000)
 						except:
 							msg('warp error')
