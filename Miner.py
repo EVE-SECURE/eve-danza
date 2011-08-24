@@ -185,6 +185,37 @@ try:
 		if miner and hasattr(miner, 'alive') and miner.alive:
 			miner.ClearStats()
 
+	@safetycheck
+	def FormatTimeAgo(theTime):
+	    delta = blue.os.GetTime() - theTime
+	    (hours, minutes, seconds,) = util.HoursMinsSecsFromSecs(util.SecsFromBlueTimeDelta(delta))
+	    days = 0
+	    if hours > 48:
+	        days = int(hours / 24)
+	        hours %= 24
+	    t = util.FormatTimeDelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+	    if t is None:
+	        howLongAgo = mls.UI_GENERIC_RIGHTNOW
+	    else:
+	        howLongAgo = mls.UI_GENERIC_AGO_WITH_FORMAT % {'time': t}
+	    return howLongAgo
+
+	@safetycheck
+	def FormatTimeDelta(days = None, hours = None, minutes = None, seconds = None):
+	    ret = []
+	    if days:
+	        ret.append('%s %s' % (days, uix.Plural(days, 'UI_GENERIC_DAY').lower()))
+	    if hours:
+	        ret.append('%s %s' % (hours, uix.Plural(hours, 'UI_GENERIC_HOUR').lower()))
+	    if minutes:
+	        ret.append('%s %s' % (minutes, uix.Plural(minutes, 'UI_GENERIC_MINUTE').lower()))
+	    if seconds:
+	        ret.append('%s %s' % (seconds, uix.Plural(seconds, 'UI_GENERIC_SECOND').lower()))
+	    if ret:
+	        return ', '.join(ret)
+	    else:
+	        return None
+
 	class MinerService():
 		__guid__ = 'svc.MinerService'
 		__servicename__ = 'MinerService'
@@ -198,6 +229,7 @@ try:
   			self.alive = base.AutoTimer(1000, self.Update)
 
 		def StartUp(self):
+			self.statsTime = 'unknown'
 			self.runCount = 0
 			self.avgTime = 0
 			self.totalUnload = 0
@@ -238,7 +270,7 @@ try:
 				locationname = STR[self.location]
 			if not self.state is None:
 				statename = STR[self.state]
-			self.pane.ShowMsg(locationname, statename, self.runCount, len(self.bmsToSkip), self.totalUnload)
+			self.pane.ShowMsg(locationname, statename, self.runCount, len(self.bmsToSkip), self.totalUnload, self.statsTime)
 
 		def Update(self):
 			if self.updateSkip:
@@ -725,6 +757,7 @@ try:
 			# we're packing the useful stats into one tuple to store in settings
 			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
 			settings.public.ui.Set("MinerStats", MinerStats)
+			self.statsTime = FormatTimeAgo(self.lastStart)
 
 		@safetycheck
 		def ClearStats(self):
@@ -793,30 +826,33 @@ try:
 				self.message3 = None
 				self.message4 = None
 				self.message5 = None
+				self.message6 = None
 				uicls.Container.ApplyAttributes(self, attributes)
 
 			def Prepare_Text_(self):
-				self.message = uicls.Label(text='', parent=self, left=0, top=4, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message3 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message4 = uicls.Label(text='', parent=self, left=0, top=40, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message5 = uicls.Label(text='', parent=self, left=0, top=52, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message = uicls.Label(text='', parent=self, left=0, top=4, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message3 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message4 = uicls.Label(text='', parent=self, left=0, top=40, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message5 = uicls.Label(text='', parent=self, left=0, top=52, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message6 = uicls.Label(text='', parent=self, left=0, top=66, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
 				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
 				frame = uicls.Frame(parent=self, color=(0.0, 0.0, 0.0, 0.75), frameConst=uiconst.FRAME_FILLED_CORNER1, state=uiconst.UI_DISABLED)
 
-			def ShowMsg(self, location, state, runCount, skipNum, unloaded):
+			def ShowMsg(self, location, state, runCount, skipNum, unloaded, statsTime):
 				if self.message is None:
 					self.Prepare_Text_()
 					self.Prepare_Underlay_()
-				self.message.text = '<center>Location: ' + location
-				self.message2.text = '<center>State: ' + state
-				self.message3.text = '<center>Total Run Count: %d' % runCount
-				self.message4.text = '<center>Number of belts currently being skipped: %d' % skipNum
-				self.message5.text = '<center>Total Ores Mined: %s m\xb3' % (util.FmtAmt(unloaded, showFraction=1))
+				self.message.text = '<left> Location: ' + location
+				self.message2.text = '<left> State: ' + state
+				self.message3.text = '<right>Total Run Count: %d ' % runCount
+				self.message4.text = '<right>Number of belts currently being skipped: %d ' % skipNum
+				self.message5.text = '<right>Total Ores Mined: %s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
+				self.message6.text = '<center>Current stats logged from: %s' % statsTime
 				self.SetAlign(uiconst.CENTERTOP)
-				self.SetSize(300, 70)
+				self.SetSize(400, 84)
 				offset = sm.GetService('window').GetCameraLeftOffset(self.width, align=uiconst.CENTERTOP, left=0)
 				self.SetPosition(offset, 5)
 				self.state = uiconst.UI_DISABLED
