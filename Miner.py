@@ -179,6 +179,12 @@ try:
 			else:
 				miner.Open()
 
+	@safetycheck
+	def ClearIt(*args):
+		miner = sm.GetService('jukebox').playlists
+		if miner and hasattr(miner, 'alive') and miner.alive:
+			miner.ClearStats()
+
 	class MinerService():
 		__guid__ = 'svc.MinerService'
 		__servicename__ = 'MinerService'
@@ -213,6 +219,8 @@ try:
 			self.undockSafeFlag = 0
 			self.state = None
 			self.location = None
+
+			self.LoadStats()
 			self.UpdateLocation()
 			self.UpdateState()
 			self.InitPane()
@@ -230,7 +238,7 @@ try:
 				locationname = STR[self.location]
 			if not self.state is None:
 				statename = STR[self.state]
-			self.pane.ShowMsg(locationname, statename, self.runCount, self.totalUnload)
+			self.pane.ShowMsg(locationname, statename, self.runCount, len(self.bmsToSkip), self.totalUnload)
 
 		def Update(self):
 			if self.updateSkip:
@@ -439,6 +447,7 @@ try:
 						if self.currentBM not in self.bmsToSkip:
 							self.bmsToSkip.append(self.currentBM)
 						msg('Bad belt, currently skipping %d' % len(self.bmsToSkip))
+						self.SaveStats()
 						Sleep(1000)
 						self.WarpToBelt()
 					self.MineLock = 0
@@ -597,6 +606,7 @@ try:
   				uicore.cmd.CmdExitStation()
 				Sleep(random.randrange(15000, 18000))
  				self.runCount += 1
+				self.SaveStats()
 				self.undockSafeFlag = 0
 			except:
 				msg('cannot undock')
@@ -611,8 +621,8 @@ try:
 					cap = cargo.GetCapacity()
  					load = cap.used
 					self.totalUnload += load
+					self.SaveStats()
 					hangar.OnDropDataWithIdx(cargo.sr.scroll.GetNodes())
-
 			except:
 				msg('cannot unload')
 
@@ -701,13 +711,33 @@ try:
 			self.RefillLock = 0
 
 		@safetycheck
-		def UpdateStats(self):
-			if (not self.lastStart == None):
-				lastFinish = blue.os.GetTime()
-				duration = lastFinish - self.lastStart
-				self.avgTime = (self.avgTime * self.runCount + duration) / (self.runCount + 1)
-			self.lastStart = blue.os.GetTime()
-			self.runCount += 1
+		def LoadStats(self):
+			MinerStats = settings.public.ui.Get("MinerStats")
+			if MinerStats == None:
+				return
+			self.runCount = MinerStats[0]
+			self.bmsToSkip = MinerStats[1]
+			self.totalUnload = MinerStats[2]
+			self.lastStart = settings.public.ui.Get("MinerLastStart")
+
+		@safetycheck
+		def SaveStats(self):
+			# we're packing the useful stats into one tuple to store in settings
+			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
+			settings.public.ui.Set("MinerStats", MinerStats)
+
+		@safetycheck
+		def ClearStats(self):
+			# add code for saving stats to file later!!!!
+			self.runCount = 0
+			self.bmsToSkip = list()
+			self.totalUnload = 0
+			settings.public.ui.Set("MinerStats", None)
+			currentTime = blue.os.GetTime()
+			settings.public.ui.Set("MinerLastStart", currentTime)
+			self.lastStart = currentTime
+			self.UpdatePane()
+			msg('Miner stats cleared!')
 
 
 		def Open(self):
@@ -762,6 +792,7 @@ try:
 				self.message2 = None
 				self.message3 = None
 				self.message4 = None
+				self.message5 = None
 				uicls.Container.ApplyAttributes(self, attributes)
 
 			def Prepare_Text_(self):
@@ -769,21 +800,23 @@ try:
 				self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
 				self.message3 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
 				self.message4 = uicls.Label(text='', parent=self, left=0, top=40, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message5 = uicls.Label(text='', parent=self, left=0, top=52, autowidth=False, width=300, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
 				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
 				frame = uicls.Frame(parent=self, color=(0.0, 0.0, 0.0, 0.75), frameConst=uiconst.FRAME_FILLED_CORNER1, state=uiconst.UI_DISABLED)
 
-			def ShowMsg(self, location, state, runCount, unloaded):
+			def ShowMsg(self, location, state, runCount, skipNum, unloaded):
 				if self.message is None:
 					self.Prepare_Text_()
 					self.Prepare_Underlay_()
 				self.message.text = '<center>Location: ' + location
 				self.message2.text = '<center>State: ' + state
 				self.message3.text = '<center>Total Run Count: %d' % runCount
-				self.message4.text = '<center>Total Ores Mined: %s m\xb3' % (util.FmtAmt(unloaded, showFraction=1))
+				self.message4.text = '<center>Number of belts currently being skipped: %d' % skipNum
+				self.message5.text = '<center>Total Ores Mined: %s m\xb3' % (util.FmtAmt(unloaded, showFraction=1))
 				self.SetAlign(uiconst.CENTERTOP)
-				self.SetSize(300, 56)
+				self.SetSize(300, 70)
 				offset = sm.GetService('window').GetCameraLeftOffset(self.width, align=uiconst.CENTERTOP, left=0)
 				self.SetPosition(offset, 5)
 				self.state = uiconst.UI_DISABLED
@@ -823,19 +856,19 @@ try:
 		btn = uix.GetBigButton(32, neocomwnd, top=800)
 		btn.OnClick = CreateIt
 		btn.hint = "Start Miner service"
-		btn.sr.icon.LoadIcon('40_14')
+		btn.sr.icon.LoadIcon('11_11')
 		createBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=833)
 		btn.OnClick = DestroyIt
 		btn.hint = "Kill Miner service"
-		btn.sr.icon.LoadIcon('40_15')
+		btn.sr.icon.LoadIcon('11_12')
 		destroyBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=866)
-		btn.OnClick = ToggleIt
-		btn.hint = "Toggle Dash"
-		btn.sr.icon.LoadIcon('40_16')
+		btn.OnClick = ClearIt
+		btn.hint = "Clear stats"
+		btn.sr.icon.LoadIcon('11_13')
 		actionBtn = btn
 
 	except:
