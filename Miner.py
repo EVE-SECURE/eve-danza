@@ -190,34 +190,36 @@ try:
 
 	@safetycheck
 	def FormatTimeAgo(theTime):
-	    delta = blue.os.GetTime() - theTime
-	    (hours, minutes, seconds,) = util.HoursMinsSecsFromSecs(util.SecsFromBlueTimeDelta(delta))
-	    days = 0
-	    if hours > 48:
-	        days = int(hours / 24)
-	        hours %= 24
-	    t = util.FormatTimeDelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-	    if t is None:
-	        howLongAgo = mls.UI_GENERIC_RIGHTNOW
-	    else:
-	        howLongAgo = mls.UI_GENERIC_AGO_WITH_FORMAT % {'time': t}
-	    return howLongAgo
+		if (theTime == None):
+			theTime = blue.os.GetTime()
+		delta = blue.os.GetTime() - theTime
+		(hours, minutes, seconds,) = util.HoursMinsSecsFromSecs(util.SecsFromBlueTimeDelta(delta))
+		days = 0
+		if hours > 48:
+			days = int(hours / 24)
+			hours %= 24
+		t = util.FormatTimeDelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+		if t is None:
+			howLongAgo = mls.UI_GENERIC_RIGHTNOW
+		else:
+			howLongAgo = mls.UI_GENERIC_AGO_WITH_FORMAT % {'time': t}
+		return howLongAgo
 
 	@safetycheck
 	def FormatTimeDelta(days = None, hours = None, minutes = None, seconds = None):
-	    ret = []
-	    if days:
-	        ret.append('%s %s' % (days, uix.Plural(days, 'UI_GENERIC_DAY').lower()))
-	    if hours:
-	        ret.append('%s %s' % (hours, uix.Plural(hours, 'UI_GENERIC_HOUR').lower()))
-	    if minutes:
-	        ret.append('%s %s' % (minutes, uix.Plural(minutes, 'UI_GENERIC_MINUTE').lower()))
-	    if seconds:
-	        ret.append('%s %s' % (seconds, uix.Plural(seconds, 'UI_GENERIC_SECOND').lower()))
-	    if ret:
-	        return ', '.join(ret)
-	    else:
-	        return None
+		ret = []
+		if days:
+			ret.append('%s %s' % (days, uix.Plural(days, 'UI_GENERIC_DAY').lower()))
+		if hours:
+			ret.append('%s %s' % (hours, uix.Plural(hours, 'UI_GENERIC_HOUR').lower()))
+		if minutes:
+			ret.append('%s %s' % (minutes, uix.Plural(minutes, 'UI_GENERIC_MINUTE').lower()))
+		if seconds:
+			ret.append('%s %s' % (seconds, uix.Plural(seconds, 'UI_GENERIC_SECOND').lower()))
+		if ret:
+			return ', '.join(ret)
+		else:
+			return None
 
 	class MinerService():
 		__guid__ = 'svc.MinerService'
@@ -236,7 +238,7 @@ try:
 			self.runCount = 0
 			self.avgTime = 0
 			self.totalUnload = 0
-			self.lastStart = None
+			self.lastStart = settings.public.ui.get("MinerLastStart")
 			self.balls = []
 			self.station = None
 			self.UpdateLocationLock = 0
