@@ -327,6 +327,7 @@ try:
 			if not self.state is None:
 				statename = STR[self.state]
 			self.size = self.GetFootprint()
+            self.statsTime = FormatTimeAgo(self.lastStart)
 			self.pane.ShowMsg(locationname, statename, self.runCount, len(self.bmsToSkip), self.totalUnload, self.statsTime, self.size)
 
 		def Update(self):
@@ -808,8 +809,8 @@ try:
 			# we're packing the useful stats into one tuple to store in settings
 			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
 			settings.public.ui.Set('MinerStats', MinerStats)
-##			if self.lastStart == None:
-##				self.lastStart == blue.os.GetTime()
+			if self.lastStart == None:
+				self.lastStart == blue.os.GetTime()
 			self.statsTime = FormatTimeAgo(self.lastStart)
 
 		@safetycheck
@@ -842,7 +843,7 @@ try:
 			sio.write(sessionInfo)
 			durationText = FormatTimeAgo(self.lastStart)
 			durationText = durationText[:-4]
-			if durationText == 'right':
+			if durationText = "right" or durationText == "right ":
 				durationText == 'less than a second'
 			sio.write('Run duration:  %s\n' % durationText)
 			sio.write('Runs completed:  %s\n' % self.runCount)
