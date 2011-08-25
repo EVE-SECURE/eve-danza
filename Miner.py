@@ -251,7 +251,9 @@ try:
 	        container = False
 	        size = len(obj) + 1
 	    else:
-	        raise TypeError("don't know about this kind of object")
+	        kind = "unknown"
+			container = True
+			size = 144
 	    if kind == "fixed":
 	        overhead = 8
 	    else: # "variable"
