@@ -760,6 +760,8 @@ try:
 			# we're packing the useful stats into one tuple to store in settings
 			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
 			settings.public.ui.Set("MinerStats", MinerStats)
+			if self.lastStart == None:
+				self.lastStart == blue.os.GetTime()
 			self.statsTime = FormatTimeAgo(self.lastStart)
 
 		@safetycheck
