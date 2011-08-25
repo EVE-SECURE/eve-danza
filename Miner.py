@@ -40,6 +40,7 @@ try:
 	import cStringIO
 	import collections
 	import os
+	import inspect
 
 	STATE_IDLESPACE = 0
 	STATE_UNLOADSTATION = 1
@@ -221,6 +222,53 @@ try:
 		else:
 			return None
 
+	@safetycheck
+	def sizeof(obj):
+	    """APPROXIMATE memory taken by some Python objects in
+	    the current 32-bit CPython implementation.
+
+	    Excludes the space used by items in containers; does not
+	    take into account overhead of memory allocation from the
+	    operating system, or over-allocation by lists and dicts.
+	    """
+	    T = type(obj)
+	    if T is int:
+	        kind = "fixed"
+	        container = False
+	        size = 4
+	    elif T is list or T is tuple:
+	        kind = "variable"
+	        container = True
+	        size = 4*len(obj)
+	    elif T is dict:
+	        kind = "variable"
+	        container = True
+	        size = 144
+	        if len(obj) > 8:
+	            size += 12*(len(obj)-8)
+	    elif T is str:
+	        kind = "variable"
+	        container = False
+	        size = len(obj) + 1
+	    else:
+	        raise TypeError("don't know about this kind of object")
+	    if kind == "fixed":
+	        overhead = 8
+	    else: # "variable"
+	        overhead = 12
+	    if container:
+	        garbage_collector = 8
+	    else:
+	        garbage_collector = 0
+	    malloc = 8 # in most cases
+	    size = size + overhead + garbage_collector + malloc
+	    # Round to nearest multiple of 8 bytes
+	    x = size % 8
+	    if x != 0:
+	        size += 8-x
+	        size = (size + 8)
+	    return size
+
 	class MinerService():
 		__guid__ = 'svc.MinerService'
 		__servicename__ = 'MinerService'
@@ -234,6 +282,7 @@ try:
   			self.alive = base.AutoTimer(1000, self.Update)
 
 		def StartUp(self):
+			self.size = 0
 			self.statsTime = 'unknown'
 			self.runCount = 0
 			self.avgTime = 0
@@ -275,7 +324,8 @@ try:
 				locationname = STR[self.location]
 			if not self.state is None:
 				statename = STR[self.state]
-			self.pane.ShowMsg(locationname, statename, self.runCount, len(self.bmsToSkip), self.totalUnload, self.statsTime)
+			self.size = self.GetFootprint()
+			self.pane.ShowMsg(locationname, statename, self.runCount, len(self.bmsToSkip), self.totalUnload, self.statsTime, self.size)
 
 		def Update(self):
 			if self.updateSkip:
@@ -836,6 +886,17 @@ try:
 				proportion = 1.0
 			return proportion
 
+		@safetycheck
+		def GetFootprint(self):
+			members = inspect.getmembers(self)
+			totalsize = 0
+			for each in members:
+				size = sizeof(each)
+				totalsize += size
+			#msg('miner currently occupying %d bytes' % totalsize)
+			#msg('miner currently has %d members' % len(members))
+			return totalsize
+
 		def Open(self):
 			if self.pane == None:
 				self.InitPane()
@@ -890,6 +951,7 @@ try:
 				self.message4 = None
 				self.message5 = None
 				self.message6 = None
+				self.message7 = None
 				uicls.Container.ApplyAttributes(self, attributes)
 
 			def Prepare_Text_(self):
@@ -898,13 +960,14 @@ try:
 				self.message3 = uicls.Label(text='', parent=self, left=0, top=4, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 				self.message4 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 				self.message5 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message6 = uicls.Label(text='', parent=self, left=0, top=60, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message6 = uicls.Label(text='', parent=self, left=0, top=50, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message7 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
 				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
 				frame = uicls.Frame(parent=self, color=(0.0, 0.0, 0.0, 0.75), frameConst=uiconst.FRAME_FILLED_CORNER1, state=uiconst.UI_DISABLED)
 
-			def ShowMsg(self, location, state, runCount, skipNum, unloaded, statsTime):
+			def ShowMsg(self, location, state, runCount, skipNum, unloaded, statsTime, size):
 				if self.message is None:
 					self.Prepare_Text_()
 					self.Prepare_Underlay_()
@@ -913,9 +976,10 @@ try:
 				self.message3.text = '<right>Runs completed: <color=0xff00ff37>%d ' % runCount
 				self.message4.text = '<right>Belts being skipped: <color=0xff00ff37>%d ' % skipNum
 				self.message5.text = '<right>Ored unloaded: <color=0xff00ff37>%s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
-				self.message6.text = '<center>Current stats logged from: %s' % statsTime
+				self.message6.text = '<center>Current stats logged from: <color=0xffffffff>%s' % statsTime
+				self.message7.text = '<left> Memory used: <color=0xffff3700>%s</color> Bytes' % (util.FmtAmt(size, showFraction=0))
 				self.SetAlign(uiconst.CENTERTOP)
-				self.SetSize(400, 76)
+				self.SetSize(400, 66)
 				offset = sm.GetService('window').GetCameraLeftOffset(self.width, align=uiconst.CENTERTOP, left=0)
 				self.SetPosition(offset, 5)
 				self.state = uiconst.UI_DISABLED
