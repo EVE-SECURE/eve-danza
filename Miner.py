@@ -373,26 +373,17 @@ try:
 					proportion = min(1.0, max(0.0, full / float(total)))
 				else:
 					proportion = 1.0
+##				proportion = self.GetCargoProportion()
 				# we're being lenient on the definition of "full" here
-				if proportion > 0.9:
+				if proportion > 0.80:
 					self.state = STATE_DOCKINGSTATION
 				else:
 					self.state = STATE_UNDOCKED
 			elif self.location == LOCATION_BELT:
 				# if our cargo is full and we're at a belt, we must be docking up
-				cargownd = self.GetCargo()
-				if cargownd == None:
-					self.state == STATE_HIBERNATE
-					self.UpdateStateLock = 0
-					return
-				cap = cargownd.GetCapacity()
-				(total, full,) = (cap.capacity, cap.used)
-				if total:
-					proportion = min(1.0, max(0.0, full / float(total)))
-				else:
-					proportion = 1.0
+				proportion = self.GetCargoProportion()
 				# we're being lenient on the definition of "full" here
-				if proportion > 0.9:
+				if proportion > 0.97:
 					self.state = STATE_DOCKINGSTATION
 				# if we're sitting at a belt, we can be idle or we can be mining
 				elif self.ModulesActive():
@@ -656,8 +647,9 @@ try:
 				if cargo and hangar:
 					cap = cargo.GetCapacity()
  					load = cap.used
-					self.totalUnload += load
-					self.runCount += 1
+					if load > 0:
+						self.totalUnload += load
+ 						self.runCount += 1
 					self.SaveStats()
 					hangar.OnDropDataWithIdx(cargo.sr.scroll.GetNodes())
 			except:
@@ -764,8 +756,8 @@ try:
 			# we're packing the useful stats into one tuple to store in settings
 			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
 			settings.public.ui.Set('MinerStats', MinerStats)
-			if self.lastStart == None:
-				self.lastStart == blue.os.GetTime()
+##			if self.lastStart == None:
+##				self.lastStart == blue.os.GetTime()
 			self.statsTime = FormatTimeAgo(self.lastStart)
 
 		@safetycheck
@@ -774,9 +766,9 @@ try:
 			self.runCount = 0
 			self.bmsToSkip = list()
 			self.totalUnload = 0
-			settings.public.ui.Set("MinerStats", None)
+			settings.public.ui.Set('MinerStats', None)
 			now = blue.os.GetTime()
-			settings.public.ui.Set("MinerLastStart", now)
+			settings.public.ui.Set('MinerLastStart', now)
 			self.lastStart = now
 			self.statsTime = FormatTimeAgo(self.lastStart)
 			self.UpdatePane()
@@ -809,6 +801,40 @@ try:
 				f.write(sio.getvalue())
 			f.close()
 
+		@safetycheck
+		def GetCargoProportion(self):
+			cargownd = self.GetCargo()
+			if cargownd == None:
+				return 0
+			cap = cargownd.GetCapacity()
+			(total, full,) = (cap.capacity, cap.used)
+
+			activeModules = list()
+			for i in xrange(0, 8):
+				slot = uicore.layer.shipui.sr.slotsByOrder.get((0, i), None)
+				if slot and slot.sr.module and slot.sr.module.state == uiconst.UI_NORMAL:
+					if slot.sr.module.def_effect.isActive:
+						activeModules.append(slot.sr.module)
+			#msg('modules we have active: %d' % len(activeModules))
+			totalPortion = 0.0
+			if len(activeModules) == 0:
+				return 0
+			for each in activeModules:
+				(startTime, durationInMilliseconds,) = activeModules[0].GetDuration()
+				if durationInMilliseconds <= 0:
+					portionDone = 0.0
+				else:
+	  				portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
+				totalPortion += portionDone
+			totalPortionAvg = totalPortion / len(activeModules)
+			#msg('average portion: %s' % totalPortionAvg)
+			havemined = totalPortionAvg * (1492*3)
+			estimatedcargo = full + havemined
+			if total:
+				proportion = min(1.0, max(0.0, estimatedcargo / float(total)))
+			else:
+				proportion = 1.0
+			return proportion
 
 		def Open(self):
 			if self.pane == None:
@@ -869,10 +895,10 @@ try:
 			def Prepare_Text_(self):
 				self.message = uicls.Label(text='', parent=self, left=0, top=4, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 				self.message2 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message3 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message4 = uicls.Label(text='', parent=self, left=0, top=40, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message5 = uicls.Label(text='', parent=self, left=0, top=52, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
-				self.message6 = uicls.Label(text='', parent=self, left=0, top=70, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message3 = uicls.Label(text='', parent=self, left=0, top=4, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message4 = uicls.Label(text='', parent=self, left=0, top=16, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message5 = uicls.Label(text='', parent=self, left=0, top=28, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
+				self.message6 = uicls.Label(text='', parent=self, left=0, top=60, autowidth=False, width=400, fontsize=12, state=uiconst.UI_DISABLED)
 
 			def Prepare_Underlay_(self):
 				border = uicls.Frame(parent=self, frameConst=uiconst.FRAME_BORDER1_CORNER1, state=uiconst.UI_DISABLED, color=(1.0, 1.0, 1.0, 0.5))
@@ -884,12 +910,12 @@ try:
 					self.Prepare_Underlay_()
 				self.message.text = '<left> Location: <color=0xffffff00>%s' % location
 				self.message2.text = '<left> State: <color=0xff00ffff>%s' % state
-				self.message3.text = '<right>Total Run Count: <color=0xff00ff37>%d ' % runCount
-				self.message4.text = '<right>Number of belts currently being skipped: <color=0xff00ff37>%d ' % skipNum
-				self.message5.text = '<right>Total Ores Mined: <color=0xff00ff37>%s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
+				self.message3.text = '<right>Runs completed: <color=0xff00ff37>%d ' % runCount
+				self.message4.text = '<right>Belts being skipped: <color=0xff00ff37>%d ' % skipNum
+				self.message5.text = '<right>Ored unloaded: <color=0xff00ff37>%s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
 				self.message6.text = '<center>Current stats logged from: %s' % statsTime
 				self.SetAlign(uiconst.CENTERTOP)
-				self.SetSize(400, 86)
+				self.SetSize(400, 76)
 				offset = sm.GetService('window').GetCameraLeftOffset(self.width, align=uiconst.CENTERTOP, left=0)
 				self.SetPosition(offset, 5)
 				self.state = uiconst.UI_DISABLED
