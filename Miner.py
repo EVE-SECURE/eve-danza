@@ -224,52 +224,52 @@ try:
 
 	@safetycheck
 	def sizeof(obj):
-	    """APPROXIMATE memory taken by some Python objects in
-	    the current 32-bit CPython implementation.
+		"""APPROXIMATE memory taken by some Python objects in
+		the current 32-bit CPython implementation.
 
-	    Excludes the space used by items in containers; does not
-	    take into account overhead of memory allocation from the
-	    operating system, or over-allocation by lists and dicts.
-	    """
-	    T = type(obj)
-	    if T is int:
-	        kind = "fixed"
-	        container = False
-	        size = 4
-	    elif T is list or T is tuple:
-	        kind = "variable"
-	        container = True
-	        size = 4*len(obj)
-	    elif T is dict:
-	        kind = "variable"
-	        container = True
-	        size = 144
-	        if len(obj) > 8:
-	            size += 12*(len(obj)-8)
-	    elif T is str:
-	        kind = "variable"
-	        container = False
-	        size = len(obj) + 1
-	    else:
-	        kind = "unknown"
+		Excludes the space used by items in containers; does not
+		take into account overhead of memory allocation from the
+		operating system, or over-allocation by lists and dicts.
+		"""
+		T = type(obj)
+		if T is int:
+			kind = "fixed"
+			container = False
+			size = 4
+		elif T is list or T is tuple:
+			kind = "variable"
+			container = True
+			size = 4*len(obj)
+		elif T is dict:
+			kind = "variable"
 			container = True
 			size = 144
-	    if kind == "fixed":
-	        overhead = 8
-	    else: # "variable"
-	        overhead = 12
-	    if container:
-	        garbage_collector = 8
-	    else:
-	        garbage_collector = 0
-	    malloc = 8 # in most cases
-	    size = size + overhead + garbage_collector + malloc
-	    # Round to nearest multiple of 8 bytes
-	    x = size % 8
-	    if x != 0:
-	        size += 8-x
-	        size = (size + 8)
-	    return size
+			if len(obj) > 8:
+				size += 12*(len(obj)-8)
+		elif T is str:
+			kind = "variable"
+			container = False
+			size = len(obj) + 1
+		else:
+			kind = "unknown"
+			container = True
+			size = 144
+		if kind == "fixed":
+			overhead = 8
+		else: # "variable"
+			overhead = 12
+		if container:
+			garbage_collector = 8
+		else:
+			garbage_collector = 0
+		malloc = 8 # in most cases
+		size = size + overhead + garbage_collector + malloc
+		# Round to nearest multiple of 8 bytes
+		x = size % 8
+		if x != 0:
+			size += 8-x
+			size = (size + 8)
+		return size
 
 	class MinerService():
 		__guid__ = 'svc.MinerService'
@@ -327,7 +327,7 @@ try:
 			if not self.state is None:
 				statename = STR[self.state]
 			self.size = self.GetFootprint()
-            self.statsTime = FormatTimeAgo(self.lastStart)
+			self.statsTime = FormatTimeAgo(self.lastStart)
 			self.pane.ShowMsg(locationname, statename, self.runCount, len(self.bmsToSkip), self.totalUnload, self.statsTime, self.size)
 
 		def Update(self):
@@ -819,7 +819,8 @@ try:
 			self.runCount = 0
 			self.bmsToSkip = list()
 			self.totalUnload = 0
-			settings.public.ui.Set('MinerStats', None)
+			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
+			settings.public.ui.Set('MinerStats', MinerStats)
 			now = blue.os.GetTime()
 			settings.public.ui.Set('MinerLastStart', now)
 			self.lastStart = now
@@ -843,8 +844,8 @@ try:
 			sio.write(sessionInfo)
 			durationText = FormatTimeAgo(self.lastStart)
 			durationText = durationText[:-4]
-			if durationText = "right" or durationText == "right ":
-				durationText == 'less than a second'
+			if (durationText == 'right') or (durationText == 'right '):
+				durationText == 'too short'
 			sio.write('Run duration:  %s\n' % durationText)
 			sio.write('Runs completed:  %s\n' % self.runCount)
 			sio.write('Number of belts depleted:  %s\n' % len(self.bmsToSkip))
