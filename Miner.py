@@ -642,7 +642,6 @@ try:
 				Sleep(random.randrange(25000, 30000))
   				uicore.cmd.CmdExitStation()
 				Sleep(random.randrange(15000, 18000))
- 				self.runCount += 1
 				self.SaveStats()
 				self.undockSafeFlag = 0
 			except:
@@ -658,6 +657,7 @@ try:
 					cap = cargo.GetCapacity()
  					load = cap.used
 					self.totalUnload += load
+					self.runCount += 1
 					self.SaveStats()
 					hangar.OnDropDataWithIdx(cargo.sr.scroll.GetNodes())
 			except:
@@ -749,19 +749,21 @@ try:
 
 		@safetycheck
 		def LoadStats(self):
-			MinerStats = settings.public.ui.Get("MinerStats")
+			MinerStats = settings.public.ui.Get('MinerStats')
 			if MinerStats == None:
+				msg('MinerStats is None!!!')
 				return
 			self.runCount = MinerStats[0]
 			self.bmsToSkip = MinerStats[1]
 			self.totalUnload = MinerStats[2]
-			self.lastStart = settings.public.ui.Get("MinerLastStart")
+			self.lastStart = settings.public.ui.Get('MinerLastStart')
+			self.statsTime = FormatTimeAgo(self.lastStart)
 
 		@safetycheck
 		def SaveStats(self):
 			# we're packing the useful stats into one tuple to store in settings
 			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
-			settings.public.ui.Set("MinerStats", MinerStats)
+			settings.public.ui.Set('MinerStats', MinerStats)
 			if self.lastStart == None:
 				self.lastStart == blue.os.GetTime()
 			self.statsTime = FormatTimeAgo(self.lastStart)
@@ -776,6 +778,7 @@ try:
 			now = blue.os.GetTime()
 			settings.public.ui.Set("MinerLastStart", now)
 			self.lastStart = now
+			self.statsTime = FormatTimeAgo(self.lastStart)
 			self.UpdatePane()
 			msg('Miner stats cleared!')
 
@@ -784,7 +787,8 @@ try:
 			path = 'c:/Users/Public/'
 			if not os.path.exists(path):
 				os.makedirs(path)
-	  		filename = 'logfile.txt'
+			charname = cfg.eveowners.Get(session.charid).name
+	  		filename = '%s.txt' % charname
 			sio = cStringIO.StringIO()
 			sio.write('\n')
 			now = blue.os.GetTime()
@@ -794,10 +798,12 @@ try:
 			sio.write(sessionInfo)
 			durationText = FormatTimeAgo(self.lastStart)
 			durationText = durationText[:-4]
+			if durationText == 'right':
+				durationText == 'less than a second'
 			sio.write('Run duration:  %s\n' % durationText)
 			sio.write('Runs completed:  %s\n' % self.runCount)
 			sio.write('Number of belts depleted:  %s\n' % len(self.bmsToSkip))
-			sio.write('Total ores mined:  %s m3\n' % self.totalUnload)
+			sio.write('Total ores mined:  %s m3\n' % (util.FmtAmt(self.totalUnload, showFraction=1)))
 			sio.write('\n')
 			with open(path+filename, 'a') as f:
 				f.write(sio.getvalue())
