@@ -979,7 +979,7 @@ try:
 				self.message2.text = '<left> State: <color=0xff00ffff>%s' % state
 				self.message3.text = '<right>Runs completed: <color=0xff00ff37>%d ' % runCount
 				self.message4.text = '<right>Belts being skipped: <color=0xff00ff37>%d ' % skipNum
-				self.message5.text = '<right>Ored unloaded: <color=0xff00ff37>%s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
+				self.message5.text = '<right>Ores unloaded: <color=0xff00ff37>%s m\xb3 ' % (util.FmtAmt(unloaded, showFraction=1))
 				self.message6.text = '<center>Current stats logged from: <color=0xffffffff>%s' % statsTime
 				self.message7.text = '<left> Memory used: <color=0xffff3700>%s</color> Bytes' % (util.FmtAmt(size, showFraction=0))
 				self.SetAlign(uiconst.CENTERTOP)
