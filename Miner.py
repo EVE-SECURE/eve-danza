@@ -428,7 +428,7 @@ try:
 					proportion = 1.0
 ##				proportion = self.GetCargoProportion()
 				# we're being lenient on the definition of "full" here
-				if proportion > 0.97:
+				if proportion > 0.9:
 					self.state = STATE_DOCKINGSTATION
 				else:
 					self.state = STATE_UNDOCKED
@@ -436,9 +436,9 @@ try:
 				# if our cargo is full and we're at a belt, we must be docking up
 				proportion = self.GetCargoProportion()
 				# we're being lenient on the definition of "full" here
-##				if proportion > 0.8:
-##					msg('estimated cargo load if we warp now: %s' % proportion)
-				if proportion > 0.97:
+				if proportion > 0.9:
+					msg('estimated cargo load if we warp now: %s' % proportion)
+				if proportion > 0.96:
 					self.state = STATE_DOCKINGSTATION
 				# if we're sitting at a belt, we can be idle or we can be mining
 				elif self.ModulesActive():
@@ -876,20 +876,20 @@ try:
 			if len(activeModules) == 0:
 				return 0
 			for each in activeModules:
-				(startTime, durationInMilliseconds,) = activeModules[0].GetDuration()
+				(startTime, durationInMilliseconds,) = each.GetDuration()
 				if durationInMilliseconds <= 0:
 					portionDone = 0.0
 				else:
 	  				portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
 				totalPortion += portionDone
-			totalPortionAvg = totalPortion / 3
+			totalPortionAvg = totalPortion / len(activeModules)
 			#msg('average portion: %s' % totalPortionAvg)
 			havemined = totalPortionAvg * (1492*3)
 			estimatedcargo = full + havemined
 			if total:
 				proportion = min(1.0, max(0.0, estimatedcargo / float(total)))
 			else:
-				proportion = 0.0
+				proportion = 1.0
 			return proportion
 
 		@safetycheck
