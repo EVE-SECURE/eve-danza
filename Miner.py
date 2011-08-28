@@ -415,9 +415,11 @@ try:
 			elif self.IsInWarp():
 				self.state = STATE_WARPING
 			elif self.location == LOCATION_STATIONUNDOCKED:
+				if self.state == STATE_DOCKINGSTATION:
+					return
 				cargownd = self.GetCargo()
 				if cargownd == None:
-					self.state == STATE_HIBERNATE
+					#self.state == STATE_HIBERNATE
 					self.UpdateStateLock = 0
 					return
 				cap = cargownd.GetCapacity()
