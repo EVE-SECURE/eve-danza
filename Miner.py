@@ -416,6 +416,7 @@ try:
 				self.state = STATE_WARPING
 			elif self.location == LOCATION_STATIONUNDOCKED:
 				if self.state == STATE_DOCKINGSTATION:
+					self.UpdateStateLock = 0
 					return
 				cargownd = self.GetCargo()
 				if cargownd == None:
