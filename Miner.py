@@ -289,7 +289,7 @@ try:
 			self.runCount = 0
 			self.avgTime = 0
 			self.totalUnload = 0
-			self.lastStart = settings.public.ui.get("MinerLastStart")
+			self.lastStart = settings.public.ui.get("MinerLastStart%s"%charname = cfg.eveowners.Get(session.charid).name)
 			self.balls = []
 			self.station = None
 			self.UpdateLocationLock = 0
@@ -799,21 +799,21 @@ try:
 
 		@safetycheck
 		def LoadStats(self):
-			MinerStats = settings.public.ui.Get('MinerStats')
+			MinerStats = settings.public.ui.Get('MinerStats%s' % charname = cfg.eveowners.Get(session.charid).name)
 			if MinerStats == None:
 				msg('MinerStats is None!!!')
 				return
 			self.runCount = MinerStats[0]
 			self.bmsToSkip = MinerStats[1]
 			self.totalUnload = MinerStats[2]
-			self.lastStart = settings.public.ui.Get('MinerLastStart')
+			self.lastStart = settings.public.ui.Get('MinerLastStart%s' % charname = cfg.eveowners.Get(session.charid).name)
 			self.statsTime = FormatTimeAgo(self.lastStart)
 
 		@safetycheck
 		def SaveStats(self):
 			# we're packing the useful stats into one tuple to store in settings
 			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
-			settings.public.ui.Set('MinerStats', MinerStats)
+			settings.public.ui.Set('MinerStats%s' % charname = cfg.eveowners.Get(session.charid).name, MinerStats)
 			if self.lastStart == None:
 				self.lastStart == blue.os.GetTime()
 			self.statsTime = FormatTimeAgo(self.lastStart)
@@ -825,9 +825,9 @@ try:
 			self.bmsToSkip = list()
 			self.totalUnload = 0
 			MinerStats = [self.runCount, self.bmsToSkip, self.totalUnload]
-			settings.public.ui.Set('MinerStats', MinerStats)
+			settings.public.ui.Set('MinerStats%s' % charname = cfg.eveowners.Get(session.charid).name, MinerStats)
 			now = blue.os.GetTime()
-			settings.public.ui.Set('MinerLastStart', now)
+			settings.public.ui.Set('MinerLastStart%s' % charname = cfg.eveowners.Get(session.charid).name, now)
 			self.lastStart = now
 			self.statsTime = FormatTimeAgo(self.lastStart)
 			self.UpdatePane()
