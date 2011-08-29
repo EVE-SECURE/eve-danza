@@ -653,7 +653,7 @@ try:
 						bmsAll.append(each)
 				if len(self.bmsToSkip) >= len(bmsAll):
 					msg('all belts are depleted!')
-					self.state = STATE_HIBERNATE
+##					self.state = STATE_HIBERNATE
 					self.WarpLock = 0
 					return
 
