@@ -887,7 +887,7 @@ try:
 				totalPortion += portionDone
 			totalPortionAvg = totalPortion / len(activeModules)
 			#msg('average portion: %s' % totalPortionAvg)
-			havemined = totalPortionAvg * (1492*3)
+			havemined = totalPortionAvg * (1520*3)
 			estimatedcargo = full + havemined
 			if total:
 				proportion = min(1.0, max(0.0, estimatedcargo / float(total)))
