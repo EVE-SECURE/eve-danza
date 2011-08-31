@@ -733,3 +733,128 @@ self.slots
 # slot class:
 def IsChargeEmpty(self):
     return self.charge is None
+
+###################################################
+# shipmodulebutton.py
+# getting the duration of a module's activated effect
+def DoActivateRampsThread(self):
+    if not self or self.destroyed:
+        return
+    (startTime, durationInMilliseconds,) = self.GetDuration()
+    if durationInMilliseconds <= 0:
+        return
+    self.ramp_active = True
+    self.sr.ramps.state = uiconst.UI_DISABLED
+    portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
+    rampUpInit = min(1.0, max(0.0, portionDone * 2))
+    rampDownInit = min(1.0, max(0.0, portionDone * 2 - 1.0))
+    while self and not self.destroyed and self.ramp_active:
+        (dummy, durationInMilliseconds,) = self.GetDuration()
+        halfTheTime = durationInMilliseconds / 2.0
+        funcs = [(self.SetRampUpValue, rampUpInit), (self.SetRampDownValue, rampDownInit)]
+        rampUpInit = rampDownInit = 0.0
+        for (i, (func, percent,),) in enumerate(funcs):
+            init = percent
+            if not self or self.destroyed:
+                break
+            if i == 0:
+                self.sr.rightRamp.SetRotation(math.pi)
+                self.sr.rightShadowRamp.SetRotation(math.pi)
+                self.sr.leftRamp.SetRotation(math.pi)
+                self.sr.leftShadowRamp.SetRotation(math.pi)
+            else:
+                self.sr.leftRamp.SetRotation(0)
+                self.sr.leftShadowRamp.SetRotation(0)
+                self.sr.rightRamp.SetRotation(math.pi)
+                self.sr.rightShadowRamp.SetRotation(math.pi)
+            while not self.destroyed:
+                prePercent = percent
+                try:
+                    percent = min(blue.os.TimeDiffInMs(startTime) % halfTheTime / halfTheTime, 1.0)
+                except:
+                    percent = 1.0
+                if prePercent > percent:
+                    break
+                curValue = mathUtil.Lerp(init, 1.0, percent)
+                func(curValue)
+                blue.pyos.synchro.Yield()
+                if self and not self.destroyed and not self.ramp_active:
+                    func(1.0)
+                    break
+
+
+        startTime += long(durationInMilliseconds * const.dgmTauConstant)
+        if not self or self.destroyed or self.InLimboState():
+            break
+####################################
+# some file io stuff from dataLog.py
+# remember the imports
+import cStringIO
+import collections
+import os
+def GeneratePythonCode(self, path):
+    files = []
+    validPath = 'common'
+    if validPath not in path:
+        raise AxiomError('Script path is invalid: %s, it should contain %s' % (path, validPath))
+    (helperClasses, standaloneClasses, enums,) = self.GetDefinitionElements()
+    filename = os.path.join(path, 'modules', 'dust', 'dataLogSource.py')
+    MARKER = '## MARKER ##'
+    oldContents = open(filename, 'r').read()
+    idxStart = oldContents.find(MARKER)
+    if idxStart == -1:
+        print 'Failed to find starting marker in %s' % filename
+        return []
+    idxEnd = oldContents.rfind(MARKER)
+    if idxEnd == idxStart:
+        print 'Failed to find two distinct markers in %s' % filename
+        return []
+    idxStart = oldContents.find('\n', idxStart) + 1
+    idxEnd = oldContents.rfind('\n', 0, idxEnd) + 1
+    sio = cStringIO.StringIO()
+    sio.write(oldContents[:idxStart])
+    sio.write('entryCategories = (\n')
+    for eachClass in helperClasses:
+        sio.write('    "%s",\n' % eachClass.className)
+
+    sio.write(')\n')
+    sio.write(oldContents[idxEnd:])
+    sNew = sio.getvalue()
+    if oldContents == sNew:
+        print INFO_FILE_UNCHANGED.format(filename)
+        return []
+    codeGeneration.AutoCheckoutMagic(filename)
+    try:
+        f = open(filename, 'w')
+    except IOError:
+        print ERROR_CANT_OPEN_FILE.format(filename)
+        return []
+    f.write(sNew)
+    f.close()
+    files.append(filename)
+    return files
+############################
+#########################################################
+# setting waypoint for autopilot
+# menusvc.py
+def _MapMenu(self, itemID, unparsed = 0):
+    mapItem = sm.StartService('map').GetItem(itemID)
+    if mapItem is None:
+        return []
+    checkSolarsystem = mapItem.typeID == const.typeSolarSystem
+    menuEntries = []
+    if checkSolarsystem is True:
+        waypoints = sm.StartService('starmap').GetWaypoints()
+        (uni, regionID, constellationID, _sol, _item,) = sm.StartService('map').GetParentLocationID(itemID, gethierarchy=1)
+        checkInWaypoints = itemID in waypoints
+        menuEntries += [None]
+        if checkSolarsystem:
+            menuEntries += [[mls.UI_CMD_SETDESTINATION, sm.StartService('starmap').SetWaypoint, (itemID, 1)]]
+            if checkInWaypoints:
+                menuEntries += [[mls.UI_CMD_REMOVEWAYPOINT, sm.StartService('starmap').ClearWaypoints, (itemID,)]]
+            else:
+                menuEntries += [[mls.UI_CMD_ADDWAYPOINT, sm.StartService('starmap').SetWaypoint, (itemID,)]]
+            menuEntries += [[mls.UI_CMD_BOOKMARKLOCATION, self.Bookmark, (itemID, const.typeSolarSystem, constellationID)]]
+    if unparsed:
+        return menuEntries
+    return self.ParseMenu(menuEntries)
