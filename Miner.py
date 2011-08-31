@@ -441,7 +441,7 @@ try:
 				# we're being lenient on the definition of "full" here
 				if proportion > 0.9:
 					msg('estimated cargo load if we warp now: %s' % proportion)
-				if proportion > 0.96:
+				if proportion > 0.97:
 					self.state = STATE_DOCKINGSTATION
 				# if we're sitting at a belt, we can be idle or we can be mining
 				elif self.ModulesActive():
