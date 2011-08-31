@@ -441,7 +441,7 @@ try:
 				# we're being lenient on the definition of "full" here
 				if proportion > 0.9:
 					msg('estimated cargo load if we warp now: %s' % proportion)
-				if proportion > 0.97:
+				if proportion > 0.98:
 					self.state = STATE_DOCKINGSTATION
 				# if we're sitting at a belt, we can be idle or we can be mining
 				elif self.ModulesActive():
@@ -880,7 +880,7 @@ try:
 					if slot.sr.module.def_effect.isActive:
 						activeModules.append(slot.sr.module)
 			#msg('modules we have active: %d' % len(activeModules))
-			totalPortion = 0.0
+			havemined = 0.0
 			if len(activeModules) == 0:
 				return 0
 			for each in activeModules:
@@ -889,10 +889,8 @@ try:
 					portionDone = 0.0
 				else:
 	  				portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
-				totalPortion += portionDone
-			totalPortionAvg = totalPortion / len(activeModules)
+				havemined += portionDone * 1520
 			#msg('average portion: %s' % totalPortionAvg)
-			havemined = totalPortionAvg * (1520*3)
 			estimatedcargo = full + havemined
 			if total:
 				proportion = min(1.0, max(0.0, estimatedcargo / float(total)))
