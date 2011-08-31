@@ -431,7 +431,7 @@ try:
 					proportion = 1.0
 ##				proportion = self.GetCargoProportion()
 				# we're being lenient on the definition of "full" here
-				if proportion > 0.9:
+				if proportion > 0.8:
 					self.state = STATE_DOCKINGSTATION
 				else:
 					self.state = STATE_UNDOCKED
@@ -592,7 +592,7 @@ try:
 									if i >= upto:
 										break
 									Sleep(250)
-						Sleep(random.randrange(2000,3000))
+							Sleep(random.randrange(1000,2000))
 						# now we need to worry about activating all modules
 						if len(targetsvc.GetTargets()) >= 1:
 							modulelist = []
@@ -605,7 +605,12 @@ try:
 										modulelist.append(slot.sr.module)
 									else:
 										try:
-											if (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
+											(startTime, durationInMilliseconds,) = slot.sr.module.GetDuration()
+											if durationInMilliseconds <= 0:
+												portionDone = 0.0
+											else:
+								  				portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
+											if (portionDone > 0.33) or (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
 												deactivate.append(slot.sr.module)
 										except:
 											msg('error finding modules')
