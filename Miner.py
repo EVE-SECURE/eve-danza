@@ -911,8 +911,8 @@ try:
 		def IsExhumer(self):
 			mySlim = uix.GetBallparkRecord(eve.session.shipid)
 			groupID = cfg.invtypes.Get(mySlim.typeID).groupID
-			#return (groupID == const.groupExhumer)
-			return True
+			return (groupID == const.groupExhumer)
+			#return True
 
 		@safetycheck
 		def GetFootprint(self):
