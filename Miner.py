@@ -441,7 +441,7 @@ try:
 				# we're being lenient on the definition of "full" here
 				if proportion > 0.9:
 					msg('estimated cargo load if we warp now: %s' % proportion)
-				if proportion > 0.98:
+				if proportion > 0.9666:
 					self.state = STATE_DOCKINGSTATION
 				# if we're sitting at a belt, we can be idle or we can be mining
 				elif self.ModulesActive():
@@ -592,7 +592,7 @@ try:
 									if i >= upto:
 										break
 									Sleep(250)
-							Sleep(random.randrange(1000,2000))
+							Sleep(random.randrange(300,500))
 						# now we need to worry about activating all modules
 						if len(targetsvc.GetTargets()) >= 1:
 							modulelist = []
@@ -639,7 +639,7 @@ try:
 							for each in deactivate:
 								try:
 									uthread.new(each.Click)
-									Sleep(random.randrange(200,800))
+									Sleep(random.randrange(200,500))
 									self.modulesTargets[each.id] = None
 								except:
 									pass
@@ -943,7 +943,7 @@ try:
 			self.DoLock = 0
 			self.RefillLock = 0
 			self.WarpLock = 0
-			self.pane = None
+			self.Close()
 			self.bmsToSkip = []
 			self.currentBM = None
 			self.modulesTargets = {}
