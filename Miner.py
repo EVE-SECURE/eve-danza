@@ -568,14 +568,15 @@ try:
 						return
 					else:
 						# we can mine now
-						# first check to see if we have 3 targets
+						# first check to see if we have max allowed targets locked
 						targetsvc = sm.GetService('target')
 						targets = targetsvc.GetTargets()
-						if len(targets) < 6:
+						maxTargetNum = self.GetMaxTargetNum()
+						if len(targets) < maxTargetNum:
    							overview = sm.GetService('window').GetWindow('OverView')
 							scrollnodes = overview.sr.scroll.GetNodes()
-							upto = min(len(scrollnodes), 6)
-							# we need to acquire new targets until we have 3
+							upto = min(len(scrollnodes), maxTargetNum)
+							# we need to acquire new targets until we have max allowed
 							i = 0
 							for node in scrollnodes:
 									try:
@@ -592,7 +593,7 @@ try:
 									if i >= upto:
 										break
 									Sleep(250)
-							Sleep(random.randrange(300,500))
+							Sleep(random.randrange(250,500))
 						# now we need to worry about activating all modules
 						if len(targetsvc.GetTargets()) >= 1:
 							modulelist = []
@@ -897,6 +898,15 @@ try:
 			else:
 				proportion = 1.0
 			return proportion
+
+		@safetycheck
+		def GetMaxTargetNum(self):
+			mySlim = uix.GetBallparkRecord(eve.session.shipid)
+			groupID = cfg.invtypes.Get(mySlim.typeID).groupID
+			if groupID == const.groupExhumer:
+				return 6
+			elif groupID == const.groupMiningBarge:
+				return 4
 
 		@safetycheck
 		def GetFootprint(self):
