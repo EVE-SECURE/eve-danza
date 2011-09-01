@@ -611,7 +611,7 @@ try:
 												portionDone = 0.0
 											else:
 								  				portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
-											if (portionDone > 0.33) or (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
+											if (portionDone > 0.33 and self.IsExhumer()) or (not self.modulesTargets[slot.sr.module.id] == None) and (not self.modulesTargets[slot.sr.module.id] in targetsvc.GetTargets()):
 												deactivate.append(slot.sr.module)
 										except:
 											msg('error finding modules')
@@ -907,6 +907,12 @@ try:
 				return 6
 			elif groupID == const.groupMiningBarge:
 				return 4
+		@safetycheck
+		def IsExhumer(self):
+			mySlim = uix.GetBallparkRecord(eve.session.shipid)
+			groupID = cfg.invtypes.Get(mySlim.typeID).groupID
+			#return (groupID == const.groupExhumer)
+			return True
 
 		@safetycheck
 		def GetFootprint(self):
