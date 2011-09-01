@@ -890,7 +890,7 @@ try:
 					portionDone = 0.0
 				else:
 	  				portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
-				havemined += portionDone * 1520
+				havemined += portionDone * 1565.79
 			#msg('average portion: %s' % totalPortionAvg)
 			estimatedcargo = full + havemined
 			if total:
