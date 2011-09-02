@@ -778,7 +778,7 @@ try:
 		@safetycheck
 		def RefillCrystal(self):
 			self.RefillLock = 1
-				try:
+			try:
 				hangar = self.GetHangar()
 				fittingwnd = self.GetFitting()
 				if hangar == None or fittingwnd == None:
