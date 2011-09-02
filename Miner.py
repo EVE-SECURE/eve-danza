@@ -762,17 +762,23 @@ try:
 
 		@safetycheck
 		def GetFitting(self):
-			fitting = sm.GetService('window').GetWindow('fitting')
+			windows = sm.GetService('window').GetWindows()
+			fitting = None
+			for each in windows:
+				if each.__guid__ == 'form.FittingWindow':
+					fitting = each
 			if fitting == None:
-				sm.GetService('window').GetWindow('fitting', decoClass=form.FittingWindow, create=1, maximize=1)
-				Sleep(3000)
-				fitting = sm.GetService('window').GetWindow('fitting')
+				sm.GetService('cmd').OpenFitting()
+ 				Sleep(3000)
+			for each in windows:
+				if each.__guid__ == 'form.FittingWindow':
+					fitting = each
 			return fitting
 
 		@safetycheck
 		def RefillCrystal(self):
 			self.RefillLock = 1
-			try:
+				try:
 				hangar = self.GetHangar()
 				fittingwnd = self.GetFitting()
 				if hangar == None or fittingwnd == None:
@@ -792,10 +798,10 @@ try:
 					for node in hangar.sr.scroll.GetNodes():
 						item = node.rec
 						if empty[0].IsCharge(item.typeID):
-							crystals.append(item)
+							crystals.append(node)
 					for slot in empty:
 						item = crystals.pop()
-						slot.shell.inventory.Add(item.itemID, item.locationID, qty=1, flag=slot.locationFlag)
+						slot.OnDropData(None, [item])
 						msg('loaded a crystal into slot%d' % slot.id)
 						Sleep(3000)
 				self.undockSafeFlag = 1
@@ -868,6 +874,12 @@ try:
 
 		@safetycheck
 		def GetCargoProportion(self):
+			boosted = 1565.79
+			unboosted = 1423.44
+			yieldPerCycle = unboosted
+ 			fleet = sm.GetService('fleet').fleet
+			if fleet:
+				yieldPerCycle = boosted
 			cargownd = self.GetCargo()
 			if cargownd == None:
 				return 0
@@ -890,7 +902,7 @@ try:
 					portionDone = 0.0
 				else:
 	  				portionDone = blue.os.TimeDiffInMs(startTime) % durationInMilliseconds / durationInMilliseconds
-				havemined += portionDone * 1565.79
+				havemined += portionDone * yieldPerCycle
 			#msg('average portion: %s' % totalPortionAvg)
 			estimatedcargo = full + havemined
 			if total:
