@@ -881,12 +881,13 @@ try:
 				skillName = cfg.invtypes.Get(skill.typeID).name
 				if skillName == 'Exhumers':
 					exhumerSkill = skill
-			ret = 1189.71
+			if exhumerSkill == None:
+				return 1189.71
 			if exhumerSkill.skillLevel == 5:
-				ret = 1607.73
+				return 1607.73
 			elif exhumerSkill.skillLevel == 4:
-				ret = 1565.79
-			return ret
+				return 1565.79
+			return 1189.71
 
 		@safetycheck
 		def GetCargoProportion(self):
