@@ -284,6 +284,7 @@ try:
   			self.alive = base.AutoTimer(1000, self.Update)
 
 		def StartUp(self):
+			self.yield = self.GetYieldPerLaser()
 			self.size = 0
 			self.statsTime = 'unknown'
 			self.runCount = 0
@@ -872,14 +873,27 @@ try:
 				f.write(sio.getvalue())
 			f.close()
 
+		@safetycheck:
+		def GetYieldPerLaser(self):
+			skills = sm.GetService('skills').MySkills()
+			exhumerSkill = None
+			for skill in skills:
+				skillName = cfg.invtypes.Get(skill.typeID).name
+				if  skillName == 'Exhumers':
+					exhumerSkill = skill
+			ret = 1189.71
+			if exhumerSkill.skillLevel = 5:
+				ret = 1607.73
+			elif exhumerSkill.skillLevel = 4:
+				ret = 1565.79
+			return ret
+
 		@safetycheck
 		def GetCargoProportion(self):
-			boosted = 1565.79
-			unboosted = 1423.44
-			yieldPerCycle = unboosted
+			yieldPerCycle = self.yield
  			fleet = sm.GetService('fleet').fleet
-			if fleet:
-				yieldPerCycle = boosted
+			if not fleet:
+				yieldPerCycle = yieldPerCycle / 1.1
 			cargownd = self.GetCargo()
 			if cargownd == None:
 				return 0
