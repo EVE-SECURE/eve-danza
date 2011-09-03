@@ -882,9 +882,9 @@ try:
 				if  skillName == 'Exhumers':
 					exhumerSkill = skill
 			ret = 1189.71
-			if exhumerSkill.skillLevel = 5:
+			if exhumerSkill.skillLevel == 5:
 				ret = 1607.73
-			elif exhumerSkill.skillLevel = 4:
+			elif exhumerSkill.skillLevel == 4:
 				ret = 1565.79
 			return ret
 
