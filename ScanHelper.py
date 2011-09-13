@@ -343,7 +343,7 @@ try:
 				else:
 					dist = (result.data.point - myPos).Length()
 					certainty = min(0.9999, certainty)
-					if result.groupName == None:
+					if result.groupName == None and result.groupID != None:
 						result.groupName = cfg.invgroups.Get(result.groupID).name
 				texts = [result.id,
 				 result.scanGroupName,
