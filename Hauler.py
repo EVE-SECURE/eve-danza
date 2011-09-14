@@ -90,22 +90,22 @@ try:
 	@safetycheck
 	def CreateIt(*args):
 		#create an instance of something
-		hauler = sm.GetService('jukebox').playlists
+		hauler = sm.GetService('jukebox').playlist
 		if hauler and hasattr(hauler, "alive") and hauler.alive:
 			msg('Hauler Service already running!')
 		else:
-			sm.GetService('jukebox').playlists = HaulerService()
+			sm.GetService('jukebox').playlist = HaulerService()
 
 	@safetycheck
 	def DestroyIt(*args):
 		#destroy an instance of something
-		if sm.GetService('jukebox').playlists == None:
+		if sm.GetService('jukebox').playlist == None:
 			msg('Hauler Service not running!')
 			return
-		if hasattr(sm.GetService('jukebox').playlists, 'alive'):
-			sm.GetService('jukebox').playlists.CleanUp()
-		del sm.GetService('jukebox').playlists
-		sm.GetService('jukebox').playlists = None
+		if hasattr(sm.GetService('jukebox').playlist, 'alive'):
+			sm.GetService('jukebox').playlist.CleanUp()
+		del sm.GetService('jukebox').playlist
+		sm.GetService('jukebox').playlist = None
 		msg('Hauler Service killed!')
 
 	@safetycheck
@@ -400,13 +400,13 @@ try:
 		util.Moniker.WarpToStuffAutopilot = lambda s, x: s.WarpToStuff("item", x, minRange=0)
 
 		neocomwnd = sm.GetService('neocom').main
-		btn = uix.GetBigButton(32, neocomwnd, top=800)
+		btn = uix.GetBigButton(32, neocomwnd, top=900)
 		btn.OnClick = CreateIt
 		btn.hint = "Start Hauler service"
 		btn.sr.icon.LoadIcon('11_14')
 		createBtn = btn
 
-		btn = uix.GetBigButton(32, neocomwnd, top=833)
+		btn = uix.GetBigButton(32, neocomwnd, top=933)
 		btn.OnClick = DestroyIt
 		btn.hint = "Kill Hauler service"
 		btn.sr.icon.LoadIcon('11_15')
