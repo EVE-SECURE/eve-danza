@@ -858,3 +858,382 @@ def _MapMenu(self, itemID, unparsed = 0):
     if unparsed:
         return menuEntries
     return self.ParseMenu(menuEntries)
+
+
+#############################################
+# Figure this shit out later:
+def FormatWnd(self, wnd, typeID, itemID = None, rec = None, parentID = None, historyData = None, headerOnly = 0, abstractinfo = None):
+        try:
+            if wnd is not None and not wnd.destroyed:
+                wnd.ShowLoad()
+            else:
+                return
+            self.loading = 1
+            wnd.IsBusy = 1
+            self.HideError(wnd)
+            if wnd.top == uicore.desktop.height:
+                wnd.Maximize()
+            else:
+                wnd.state = uiconst.UI_NORMAL
+            wnd.sr.itemID = itemID
+            wnd.sr.typeID = typeID
+            wnd.sr.rec = rec
+            wnd.sr.abstractinfo = abstractinfo
+            wnd.sr.corpinfo = None
+            wnd.sr.allianceinfo = None
+            wnd.sr.factioninfo = None
+            wnd.sr.warfactioninfo = None
+            wnd.sr.stationinfo = None
+            wnd.sr.plasticinfo = None
+            wnd.sr.voucherinfo = None
+            wnd.sr.itemname = None
+            wnd.sr.variationbtm = None
+            wnd.sr.corpID = None
+            wnd.sr.allianceID = None
+            wnd.sr.scroll.state = uiconst.UI_HIDDEN
+            wnd.sr.notesedit.state = uiconst.UI_HIDDEN
+            wnd.sr.descedit.state = uiconst.UI_HIDDEN
+            setattr(wnd.sr, 'oldnotes', None)
+            wnd.sr.maintabs = None
+            self.ParseTabs(wnd)
+            uix.Flush(wnd.sr.captionpush)
+            uix.Flush(wnd.sr.captioncontainer)
+            uix.Flush(wnd.sr.subinfolinkcontainer)
+            uix.Flush(wnd.sr.therestcontainer)
+            wnd.sr.subinfolinkcontainer.height = 0
+            uiutil.FlushList(wnd.sr.subcontainer.children[:-3])
+            self.GetWindowSettings(wnd, typeID, itemID)
+            height = MINHEIGHTREGULAR
+            if typeID == const.typeMedal:
+                height = MINHEIGHTMEDAL
+            wnd.SetMinSize([MINWIDTH, height])
+            self.GetIcon(wnd, typeID, itemID)
+            desc = self.GetNameAndDescription(wnd, typeID, itemID)
+            bio = None
+            if wnd.sr.isCharacter and itemID:
+                if not headerOnly:
+                    wnd.sr.dynamicTabs.append((mls.UI_GENERIC_NOTES, 'Notes'))
+                corpid = None
+                allianceid = None
+                parallelCalls = []
+                if util.IsNPC(itemID):
+                    parallelCalls.append((ReturnNone, ()))
+                    parallelCalls.append((ReturnNone, ()))
+                else:
+                    parallelCalls.append((sm.RemoteSvc('charMgr').GetPublicInfo3, (itemID,)))
+                    parallelCalls.append((sm.GetService('corp').GetInfoWindowDataForChar, (itemID, 1)))
+                if not util.IsNPC(itemID):
+                    parallelCalls.append((sm.RemoteSvc('standing2').GetSecurityRating, (itemID,)))
+                else:
+                    parallelCalls.append((ReturnNone, ()))
+                (charinfo, corpCharInfo, security,) = uthread.parallel(parallelCalls)
+                if not util.IsNPC(itemID):
+                    charinfo = charinfo[0]
+                    bio = charinfo.description
+                    corpAge = blue.os.GetTime() - charinfo.startDateTime
+                    if getattr(charinfo, 'medal1GraphicID', None):
+                        uicls.Icon(icon='ui_50_64_16', parent=wnd.sr.mainicon, left=70, top=80, size=64, align=uiconst.RELATIVE, idx=0)
+                if corpCharInfo:
+                    corpid = corpCharInfo.corpID
+                    allianceid = corpCharInfo.allianceID
+                    wnd.sr.corpID = corpid
+                    wnd.sr.allianceID = allianceid
+                    title = ''
+                    if corpCharInfo.title:
+                        title = corpCharInfo.title
+                    for ix in xrange(1, 17):
+                        titleText = getattr(corpCharInfo, 'title%s' % ix, None)
+                        if titleText:
+                            title = '%s%s%s' % (title, ['', ', '][(not not len(title))], titleText)
+
+                    if len(title) > 0:
+                        text = uicls.Label(text='%s: %s' % (mls.UI_GENERIC_TITLE, title), parent=wnd.sr.captioncontainer, align=uiconst.TOTOP, fontsize=9, linespace=11, uppercase=1, letterspace=1)
+                        if text.height > 405:
+                            text.autoheight = 0
+                            text.height = 405
+                uicls.Container(name='push', parent=wnd.sr.captioncontainer, align=uiconst.TOTOP, height=4, state=uiconst.UI_DISABLED)
+                uicls.Line(parent=wnd.sr.captioncontainer, align=uiconst.TOTOP)
+                if not util.IsNPC(itemID):
+                    uicls.Line(parent=wnd.sr.therestcontainer, align=uiconst.TOTOP)
+                    uicls.Container(name='push', parent=wnd.sr.therestcontainer, align=uiconst.TOTOP, height=4)
+                    uicls.Label(text='%s: %.1f' % (mls.UI_GENERIC_SECURITYSTATUS, security), parent=wnd.sr.therestcontainer, align=uiconst.TOTOP, fontsize=9, linespace=9, uppercase=1, letterspace=1)
+                    standing = sm.GetService('standing').GetStanding(eve.session.corpid, itemID)
+                    if standing is not None:
+                        uicls.Label(text='%s: %.1f' % (mls.UI_GENERIC_CORPSTANDING, standing), parent=wnd.sr.therestcontainer, align=uiconst.TOTOP, fontsize=9, linespace=9, uppercase=1, letterspace=1)
+                    if charinfo.bounty:
+                        self.Wanted(wnd, charinfo.bounty)
+                if wnd.sr.isCharacter and util.IsNPC(itemID):
+                    agentInfo = sm.GetService('agents').GetAgentByID(itemID)
+                    if agentInfo:
+                        corpid = agentInfo.corporationID
+                    else:
+                        corpid = sm.RemoteSvc('corpmgr').GetCorporationIDForCharacter(itemID)
+                if corpid:
+                    uicls.Container(name='push', parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOTOP, height=4)
+                    self.GetCorpLogo(corpid, parent=wnd.sr.subinfolinkcontainer, wnd=wnd)
+                    wnd.sr.subinfolinkcontainer.height = 64
+                    if not util.IsNPC(itemID) and corpid:
+                        uicls.Container(name='push', parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOLEFT, width=4)
+                        tickerName = cfg.corptickernames.Get(corpid).tickerName
+                        uicls.Label(text=mls.UI_INFOWND_MEMBEROFCORP % {'corpName': cfg.eveowners.Get(corpid).name,
+                         'tickerName': tickerName}, parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOALL, top=0, left=0, autowidth=False, autoheight=False)
+                        uicls.Label(text=mls.UI_INFOWND_FORDAY % {'day': util.FmtTimeInterval(corpAge, 'day')}, parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOBOTTOM, left=4, autowidth=False, fontsize=9, linespace=9, uppercase=1, letterspace=1)
+                        uthread.new(self.ShowRelationshipIcon, wnd, itemID, corpid, allianceid)
+                    if not util.IsNPC(itemID) and allianceid:
+                        uicls.Line(parent=wnd.sr.therestcontainer, align=uiconst.TOTOP, idx=0)
+                        uicls.Label(text=cfg.eveowners.Get(allianceid).name, parent=wnd.sr.therestcontainer, align=uiconst.TOTOP, top=4, autowidth=False, fontsize=9, linespace=9, uppercase=1, letterspace=1, idx=1)
+            elif wnd.sr.isShip and itemID or typeID and sm.GetService('godma').GetType(typeID).agentID:
+                if itemID == eve.session.shipid:
+                    otherCharID = eve.session.charid
+                elif typeID and sm.GetService('godma').GetType(typeID).agentID:
+                    otherCharID = sm.GetService('godma').GetType(typeID).agentID
+                elif eve.session.solarsystemid is not None:
+                    otherCharID = sm.GetService('michelle').GetCharIDFromShipID(itemID)
+                else:
+                    otherCharID = None
+                if otherCharID:
+                    btn = uix.GetBigButton(42, wnd.sr.subinfolinkcontainer, left=0, top=0, iconMargin=0)
+                    btn.OnClick = (self._Info__PreFormatWnd,
+                     wnd,
+                     cfg.eveowners.Get(otherCharID).typeID,
+                     otherCharID)
+                    btn.hint = mls.UI_INFOWND_CLICKFORPILOTINFO
+                    btn.sr.icon.LoadIconByTypeID(cfg.eveowners.Get(otherCharID).typeID, itemID=otherCharID, ignoreSize=True)
+                    btn.sr.icon.SetAlign(uiconst.RELATIVE)
+                    btn.sr.icon.SetSize(40, 40)
+                    wnd.sr.subinfolinkcontainer.height = 42
+            elif wnd.sr.abstractinfo is not None:
+                if wnd.sr.isMedal or wnd.sr.isRibbon:
+                    corpid = None
+                    info = sm.GetService('medals').GetMedalDetails(itemID).info[0]
+                    try:
+                        corpid = info.ownerID
+                    except:
+                        sys.exc_clear()
+                    if corpid:
+                        uicls.Container(name='push', parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOTOP, height=4)
+                        self.GetCorpLogo(corpid, parent=wnd.sr.subinfolinkcontainer, wnd=wnd)
+                        wnd.sr.subinfolinkcontainer.height = 64
+                        if corpid and not util.IsNPC(corpid):
+                            uicls.Container(name='push', parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOLEFT, width=4)
+                            tickerName = cfg.corptickernames.Get(corpid).tickerName
+                            uicls.Label(text='%s %s [%s]' % (mls.UI_GENERIC_ISSUEDBY, cfg.eveowners.Get(corpid).name, tickerName), parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOALL, top=0, left=0, autoheight=False, autowidth=False)
+                        uicls.Line(parent=wnd.sr.captioncontainer, align=uiconst.TOTOP)
+                        uicls.Line(parent=wnd.sr.therestcontainer, align=uiconst.TOTOP)
+                    uicls.Container(name='push', parent=wnd.sr.therestcontainer, align=uiconst.TOTOP, height=4)
+                    recipients = info.numberOfRecipients
+                    txt = mls.UI_GENERIC_AWARDEDTIME % {'times': recipients}
+                    uicls.Label(text=txt, parent=wnd.sr.therestcontainer, align=uiconst.TOTOP, autowidth=False, fontsize=9, linespace=9, uppercase=1, letterspace=1)
+                elif getattr(wnd.sr.abstractinfo, 'categoryID', None) == const.categoryBlueprint:
+                    wnd.sr.isBlueprint = True
+            elif wnd.sr.isCorporation:
+                parallelCalls = []
+                if wnd.sr.corpinfo is None:
+                    parallelCalls.append((sm.RemoteSvc('corpmgr').GetPublicInfo, (itemID,)))
+                else:
+                    parallelCalls.append((ReturnNone, ()))
+                parallelCalls.append((sm.GetService('faction').GetFaction, (itemID,)))
+                if wnd.sr.warfactioninfo is None:
+                    parallelCalls.append((sm.GetService('facwar').GetCorporationWarFactionID, (itemID,)))
+                else:
+                    parallelCalls.append((ReturnNone, ()))
+                (corpinfo, factionID, warFaction,) = uthread.parallel(parallelCalls)
+                wnd.sr.corpinfo = wnd.sr.corpinfo or corpinfo
+                allianceid = wnd.sr.corpinfo.allianceID
+                uthread.new(self.ShowRelationshipIcon, wnd, None, itemID, allianceid)
+                uicls.Label(text='%s: %s' % (mls.UI_INFOWND_HEADQUARTERS, cfg.evelocations.Get(wnd.sr.corpinfo.stationID).name), parent=wnd.sr.captioncontainer, align=uiconst.TOTOP, autowidth=False, state=uiconst.UI_DISABLED)
+                uicls.Container(name='push', parent=wnd.sr.captioncontainer, align=uiconst.TOTOP, height=4)
+                uicls.Line(parent=wnd.sr.captioncontainer, align=uiconst.TOTOP)
+                self.RecalcCaptionContainer(wnd, wnd.sr.captioncontainer)
+                memberDisp = None
+                if factionID or warFaction:
+                    faction = cfg.eveowners.Get(factionID) if factionID else cfg.eveowners.Get(warFaction)
+                    logo = uiutil.GetLogoIcon(itemID=faction.ownerID, parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOLEFT, state=uiconst.UI_NORMAL, hint=mls.UI_INFOWND_CLICKFORFACTIONINFO, OnClick=(self._Info__PreFormatWnd,
+                     wnd,
+                     faction.typeID,
+                     faction.ownerID), size=64, ignoreSize=True)
+                    wnd.sr.subinfolinkcontainer.height = 64
+                    memberDisp = cfg.eveowners.Get(faction.ownerID).name
+                if allianceid:
+                    alliance = cfg.eveowners.Get(allianceid)
+                    logo = uiutil.GetLogoIcon(itemID=allianceid, align=uiconst.TOLEFT, parent=wnd.sr.subinfolinkcontainer, OnClick=(self._Info__PreFormatWnd,
+                     wnd,
+                     alliance.typeID,
+                     allianceid), hint=mls.UI_INFOWND_CLICKFORALLIANCEINFO, state=uiconst.UI_NORMAL, size=64, ignoreSize=True)
+                    wnd.sr.subinfolinkcontainer.height = 64
+                    memberDisp = cfg.eveowners.Get(allianceid).name
+                if memberDisp is not None:
+                    uicls.Container(name='push', parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOLEFT, width=4)
+                    uicls.Label(text=mls.UI_INFOWND_MEMBEROFALLIANCE % {'allianceName': memberDisp}, parent=wnd.sr.subinfolinkcontainer, align=uiconst.TOALL, top=4, left=0, autowidth=False, autoheight=False)
+            elif wnd.sr.isAlliance:
+                if wnd.sr.allianceinfo is None:
+                    wnd.sr.allianceinfo = sm.GetService('alliance').GetAlliance(itemID)
+                uthread.new(self.ShowRelationshipIcon, wnd, None, None, itemID)
+            elif wnd.sr.isFaction:
+                if wnd.sr.factioninfo is None:
+                    wnd.sr.factioninfo = sm.GetService('faction').GetFactionEx(itemID)
+                uicls.Label(text='%s: %s' % (mls.UI_INFOWND_HEADQUARTERS, cfg.evelocations.Get(wnd.sr.factioninfo.solarSystemID).name), parent=wnd.sr.captioncontainer, align=uiconst.TOTOP, autowidth=False, state=uiconst.UI_DISABLED)
+                uicls.Container(name='push', parent=wnd.sr.captioncontainer, align=uiconst.TOTOP, height=4)
+                uicls.Line(parent=wnd.sr.captioncontainer, align=uiconst.TOTOP)
+                self.RecalcCaptionContainer(wnd, wnd.sr.captioncontainer)
+            invtype = cfg.invtypes.Get(typeID)
+            if invtype.groupID == const.groupWormhole:
+                desc2 = ''
+                slimItem = sm.StartService('michelle').GetItem(itemID)
+                if slimItem:
+                    desc += '<br>'
+                    desc += getattr(mls, 'UI_INFOWND_WORMHOLE_DESTDESC_%s' % slimItem.otherSolarSystemClass)
+                    maxStableMass = slimItem.maxStableMAss
+                    if slimItem.wormholeAge >= 3:
+                        desc2 += mls.UI_INFOWND_WORMHOLE_AGE4 + '<br>'
+                    elif slimItem.wormholeAge >= 2:
+                        desc2 += mls.UI_INFOWND_WORMHOLE_AGE3 + '<br>'
+                    elif slimItem.wormholeAge >= 1:
+                        desc2 += mls.UI_INFOWND_WORMHOLE_AGE2 + '<br>'
+                    elif slimItem.wormholeAge >= 0:
+                        desc2 += mls.UI_INFOWND_WORMHOLE_AGE1 + '<br>'
+                    desc2 += '<br>'
+                    if slimItem.wormholeSize < 0.5:
+                        desc2 += mls.UI_INFOWND_WORMHOLE_REMAININGMASS3 + '<br>'
+                    elif slimItem.wormholeSize < 1:
+                        desc2 += mls.UI_INFOWND_WORMHOLE_REMAININGMASS2 + '<br>'
+                    else:
+                        desc2 += mls.UI_INFOWND_WORMHOLE_REMAININGMASS1 + '<br>'
+                    if desc2:
+                        desc += '<br><br><hr><br>' + desc2
+            wnd.HideGoBack()
+            wnd.HideGoForward()
+            if not headerOnly:
+                self.GetWndData(wnd, typeID, itemID, parentID=parentID)
+                historyIdx = None
+                if historyData is None:
+                    if wnd.sr.historyIdx is not None:
+                        wnd.sr.history = wnd.sr.history[:(wnd.sr.historyIdx + 1)]
+                    history = (typeID,
+                     itemID,
+                     parentID,
+                     len(wnd.sr.history),
+                     rec,
+                     abstractinfo)
+                    wnd.sr.history.append(history)
+                    wnd.sr.historyIdx = None
+                else:
+                    (_typeID, _itemID, _parentID, historyIdx, _rec, _abstractinfo,) = historyData
+                    wnd.sr.historyIdx = historyIdx
+                if len(wnd.sr.history) > 1:
+                    if historyIdx != 0:
+                        if historyIdx:
+                            wnd.GoBack = (self.Browse, wnd.sr.history[(historyIdx - 1)], wnd)
+                        else:
+                            wnd.GoBack = (self.Browse, wnd.sr.history[-2], wnd)
+                        wnd.ShowGoBack()
+                    if historyIdx is not None and historyIdx != len(wnd.sr.history) - 1:
+                        wnd.GoForward = (self.Browse, wnd.sr.history[(historyIdx + 1)], wnd)
+                        wnd.ShowGoForward()
+            else:
+                desc = ''
+                bio = None
+            if wnd is None or wnd.destroyed:
+                return
+            tabgroup = []
+            i = 0
+            for (listtype, subtabs,) in wnd.sr.infotabs:
+                items = wnd.sr.data[listtype]['items']
+                tabname = wnd.sr.data[listtype]['name']
+                if subtabs:
+                    subtabgroup = []
+                    for (sublisttype, subsubtabs,) in subtabs:
+                        subitems = wnd.sr.data[sublisttype]['items']
+                        subtabname = wnd.sr.data[sublisttype]['name']
+                        if len(subitems):
+                            subtabgroup.append([subtabname,
+                             wnd.sr.scroll,
+                             self,
+                             (wnd, sublisttype, None)])
+
+                    if subtabgroup:
+                        _subtabs = uicls.TabGroup(name='%s_subtabs' % tabname.lower(), parent=wnd.sr.subcontainer, idx=0, tabs=subtabgroup, groupID='infowindow_%s' % sublisttype, autoselecttab=0)
+                        tabgroup.append([tabname,
+                         wnd.sr.scroll,
+                         self,
+                         (wnd,
+                          'selectSubtab',
+                          None,
+                          _subtabs),
+                         _subtabs])
+                elif len(items):
+                    tabgroup.append([tabname,
+                     wnd.sr.scroll,
+                     self,
+                     (wnd, listtype, None)])
+
+            for (listtype, funcName,) in wnd.sr.dynamicTabs:
+                if listtype == mls.UI_GENERIC_NOTES:
+                    tabgroup.append([listtype,
+                     wnd.sr.notesedit,
+                     self,
+                     (wnd, listtype, funcName)])
+                else:
+                    tabgroup.append([listtype,
+                     wnd.sr.scroll,
+                     self,
+                     (wnd, listtype, funcName)])
+
+            widthRequirements = [MINWIDTH]
+            if not headerOnly and wnd.sr.data['buttons']:
+                btns = uicls.ButtonGroup(btns=wnd.sr.data['buttons'], parent=wnd.sr.subcontainer, idx=0, unisize=0)
+                totalBtnWidth = 0
+                for btn in btns.children[0].children:
+                    totalBtnWidth += btn.width
+
+                widthRequirements.append(totalBtnWidth)
+            if desc:
+                tabgroup.insert(0, [mls.UI_GENERIC_DESCRIPTION,
+                 wnd.sr.descedit,
+                 self,
+                 (wnd,
+                  'readOnlyText',
+                  None,
+                  desc)])
+            if not util.IsNPC(itemID) and bio:
+                tabgroup.insert(0, [mls.UI_GENERIC_BIO,
+                 wnd.sr.descedit,
+                 self,
+                 (wnd,
+                  'readOnlyText',
+                  None,
+                  bio)])
+            if len(tabgroup):
+                wnd.sr.maintabs = uicls.TabGroup(name='maintabs', parent=wnd.sr.subcontainer, idx=0, tabs=tabgroup, groupID='infowindow')
+                widthRequirements.append(wnd.sr.maintabs.totalTabWidth + 16)
+            if len(widthRequirements) > 1:
+                height = MINHEIGHTREGULAR
+                if typeID == const.typeMedal:
+                    height = MINHEIGHTMEDAL
+                wnd.SetMinSize([max(widthRequirements), height])
+            self.lastActive = wnd
+            self.RecalcCaptionContainer(wnd, wnd.sr.captioncontainer)
+            self.RecalcTheRestContainer(wnd, wnd.sr.therestcontainer)
+            wnd.sr.toparea.state = uiconst.UI_PICKCHILDREN
+            if headerOnly:
+                wnd.height = wnd.sr.toparea.parent.height
+            wnd.HideLoad()
+            wnd.ShowHeaderButtons(1)
+            wnd.IsBusy = 0
+            self.loading = 0
+        except BadArgs as e:
+            if not wnd.destroyed:
+                wnd.HideLoad()
+                wnd.ShowHeaderButtons(1)
+                wnd.IsBusy = 0
+                self.loading = 0
+                self.ShowError(wnd, e.args)
+            sys.exc_clear()
+        except:
+            if not wnd.destroyed:
+                wnd.HideLoad()
+                wnd.ShowHeaderButtons(1)
+                wnd.IsBusy = 0
+                self.loading = 0
+                raise
+            sys.exc_clear()
