@@ -48,11 +48,11 @@ try:
 	RENS = 30002510
 	HOME = 30002564
 	HOME_STATION = 60004675
-	STATE_IDLESPACE = 1
-	STATE_IDLESTATION = 2
-	STATE_AUTOPILOT = 3
-	STATE_READYTOUNDOCK = 4
-	STR = [ "Error",
+	HSTATE_IDLESPACE = 1
+	HSTATE_IDLESTATION = 2
+	HSTATE_AUTOPILOT = 3
+	HSTATE_READYTOUNDOCK = 4
+	HSTR = [ "Error",
 			"Idling in space",
 			"Idling in station",
 			"Autopilot",
@@ -155,7 +155,7 @@ try:
 				return
 			statename = "Unknown"
 			if self.state:
-				statename = STR[self.state]
+				statename = HSTR[self.state]
 			self.pane.ShowMsg(statename, self.runCount)
 
 		@safetycheck
@@ -168,43 +168,43 @@ try:
 		@safetycheck
 		def UpdateState(self):
 			if sm.GetService('autoPilot').autopilot:
-				self.state = STATE_AUTOPILOT
+				self.state = HSTATE_AUTOPILOT
 			else:
 				if session.stationid:
-					if self.state == STATE_READYTOUNDOCK:
+					if self.state == HSTATE_READYTOUNDOCK:
 						return
 					else:
-						self.state = STATE_IDLESTATION
+						self.state = HSTATE_IDLESTATION
 				else:
-					self.state = STATE_IDLESPACE
+					self.state = HSTATE_IDLESPACE
 
 		@safetycheck
 		def DoSomething(self):
 			self.DoLock = 1
 			try:
-				if self.state == STATE_AUTOPILOT:
+				if self.state == HSTATE_AUTOPILOT:
 					# we should do nothing if we're in autopilot
 					pass
-				elif self.state == STATE_IDLESTATION:
+				elif self.state == HSTATE_IDLESTATION:
 					# we are idling in a station, find out which one it is, and do accordingly
 					if session.stationid == HOME_STATION:
 						# we should load up on goods and set ready to undock
 						if self.IsCargoFull():
-							self.state = STATE_READYTOUNDOCK
+							self.state = HSTATE_READYTOUNDOCK
 						else:
 							self.LoadSomething()
 							Sleep(1000)
 					elif session.stationid == RENS_STATION:
 						if self.IsCargoEmpty():
-							self.state = STATE_READYTOUNDOCK
+							self.state = HSTATE_READYTOUNDOCK
 						else:
 							Sleep(1000)
 							self.Unload()
 							Sleep(1000)
-				elif self.state == STATE_IDLESPACE:
+				elif self.state == HSTATE_IDLESPACE:
 					if not self.IsInWarp():
 						self.DockUp()
-				elif self.state == STATE_READYTOUNDOCK:
+				elif self.state == HSTATE_READYTOUNDOCK:
 					self.UndockAndSetAutopilot()
 			except:
 				msg('error in DoSomething')
