@@ -272,35 +272,41 @@ try:
 
 		@safetycheck
 		def IsCargoFull(self):
-			cargownd = self.GetCargo()
-			if cargownd == None:
-				return 0
-			cap = cargownd.GetCapacity()
-			(total, full,) = (cap.capacity, cap.used)
-		   	if total:
-				proportion = min(1.0, max(0.0, full / float(total)))
-			else:
-				proportion = 1.0
-			if proportion > 0.95:
-				return 1
-			else:
-				return 0
+			try:
+				cargownd = self.GetCargo()
+				if cargownd == None:
+					return 0
+				cap = cargownd.GetCapacity()
+				(total, full,) = (cap.capacity, cap.used)
+			   	if total:
+					proportion = min(1.0, max(0.0, full / float(total)))
+				else:
+					proportion = 1.0
+				if proportion > 0.95:
+					return 1
+				else:
+					return 0
+			except:
+				msg('check cargo error')
 
 		@safetycheck
 		def IsCargoEmpty(self):
-			cargownd = self.GetCargo()
-			if cargownd == None:
-				return 0
-			cap = cargownd.GetCapacity()
-			(total, full,) = (cap.capacity, cap.used)
-		   	if total:
-				proportion = min(1.0, max(0.0, full / float(total)))
-			else:
-				proportion = 1.0
-			if proportion == 0:
-				return 1
-			else:
-				return 0
+			try:
+				cargownd = self.GetCargo()
+				if cargownd == None:
+					return 0
+				cap = cargownd.GetCapacity()
+				(total, full,) = (cap.capacity, cap.used)
+			   	if total:
+					proportion = min(1.0, max(0.0, full / float(total)))
+				else:
+					proportion = 1.0
+				if proportion == 0:
+					return 1
+				else:
+					return 0
+			except:
+				msg('check cargo error')
 
 
 		@safetycheck
