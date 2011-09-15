@@ -88,7 +88,7 @@ try:
 			msg('we are in the main thread!')
 
 	@safetycheck
-	def CreateIt(*args):
+	def HCreateIt(*args):
 		#create an instance of something
 		hauler = sm.GetService('jukebox').playlist
 		if hauler and hasattr(hauler, "alive") and hauler.alive:
@@ -97,7 +97,7 @@ try:
 			sm.GetService('jukebox').playlist = HaulerService()
 
 	@safetycheck
-	def DestroyIt(*args):
+	def HDestroyIt(*args):
 		#destroy an instance of something
 		if sm.GetService('jukebox').playlist == None:
 			msg('Hauler Service not running!')
@@ -146,7 +146,7 @@ try:
 
 		@safetycheck
 		def InitPane(self):
-			self.pane = Dash(parent=uicore.layer.abovemain, name='Dash')
+			self.pane = HDash(parent=uicore.layer.abovemain, name='Dash')
 			self.UpdatePane()
 
 		@safetycheck
@@ -371,8 +371,8 @@ try:
 			self.pane.Close()
 			self.pane = None
 
-        class Dash(uicls.Container):
-			__guid__ = 'uicls.Dash'
+        class HDash(uicls.Container):
+			__guid__ = 'uicls.HDash'
 
 			def ApplyAttributes(self, attributes):
 				self.scope = 'station_inflight'
@@ -407,13 +407,13 @@ try:
 
 		neocomwnd = sm.GetService('neocom').main
 		btn = uix.GetBigButton(32, neocomwnd, top=900)
-		btn.OnClick = CreateIt
+		btn.OnClick = HCreateIt
 		btn.hint = "Start Hauler service"
 		btn.sr.icon.LoadIcon('11_14')
 		createBtn = btn
 
 		btn = uix.GetBigButton(32, neocomwnd, top=933)
-		btn.OnClick = DestroyIt
+		btn.OnClick = HDestroyIt
 		btn.hint = "Kill Hauler service"
 		btn.sr.icon.LoadIcon('11_15')
 		destroyBtn = btn
