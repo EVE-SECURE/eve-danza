@@ -442,7 +442,7 @@ try:
 				# we're being lenient on the definition of "full" here
 				if proportion > 0.9:
 					msg('estimated cargo load if we warp now: %s' % proportion)
-				if proportion > 0.955:
+				if proportion > 0.954:
 					self.state = STATE_DOCKINGSTATION
 				# if we're sitting at a belt, we can be idle or we can be mining
 				elif self.ModulesActive():
@@ -884,9 +884,9 @@ try:
 			if exhumerSkill == None:
 				return 1189.71
 			if exhumerSkill.skillLevel == 5:
-				return 1607.73
+				return 1713.44
 			elif exhumerSkill.skillLevel == 4:
-				return 1565.79
+				return 1636.96
 			return 1189.71
 
 		@safetycheck
