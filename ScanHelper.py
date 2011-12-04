@@ -25,6 +25,8 @@ try:
 	import uicls
 	import listentry
 	import state
+	import localization
+	import localizationUtil
 
 	try:
 		Scanner_old_apply_attributes
@@ -390,7 +392,7 @@ try:
 		self.sr.resultscroll.ShowHint('')
 		self.HighlightGoodResults()
 
-	form.Scanner.LoadResultList = MyLoadResultList
+	#form.Scanner.LoadResultList = MyLoadResultList
 
 	@safetycheck
 	def Nuke(self, *args):
@@ -573,25 +575,25 @@ try:
 		self.sr.destroyBtn.Close()
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=108)
-		btn.OnClick = self.SaveLoadProbePositions
+		btn.Click = self.SaveLoadProbePositions
 		btn.hint = "SHIFT-CLICK TO SAVE PROBES, CLICK TO LOAD PROBES"
 		btn.sr.icon.LoadIcon('44_03')
 		self.sr.saveloadBtn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=152)
-		btn.OnClick = self.ContractProbes
+		btn.Click = self.ContractProbes
 		btn.hint = "CONTRACT PROBES"
 		btn.sr.icon.LoadIcon('44_43')
 		self.sr.contractBtn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=184)
-		btn.OnClick = self.ExpandProbes
+		btn.Click = self.ExpandProbes
 		btn.hint = "EXPAND PROBES"
 		btn.sr.icon.LoadIcon('44_44')
 		self.sr.expandBtn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=228)
-		btn.OnClick = self.SendProbes
+		btn.Click = self.SendProbes
 		btn.hint = "SEND PROBES TO SELECTED RESULT"
 		btn.sr.icon.LoadIcon('44_59')
 		self.sr.sendBtn = btn
@@ -603,25 +605,25 @@ try:
 		self.sr.GoTo1Btn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=302)
-		btn.OnClick = self.GoToLocations2
+		btn.Click = self.GoToLocations2
 		btn.hint = "SEND/SAVE TO SLOT2"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoTo2Btn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=334)
-		btn.OnClick = self.GoToLocations3
+		btn.Click = self.GoToLocations3
 		btn.hint = "SEND/SAVE TO SLOT3"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoTo3Btn = btn
 
 		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=367)
-		btn.OnClick = self.CustomPosition
+		btn.Click = self.CustomPosition
 		btn.hint = "Custom Probe Config"
 		btn.sr.icon.LoadIcon('77_21')
 		self.sr.GoToXBtn = btn
 
-		btn = uix.GetBigButton(40, self.sr.systemTopParent, left=400)
-		btn.OnClick = self.Nuke
+		btn = uix.GetBigButton(32, self.sr.systemTopParent, left=400)
+		btn.Click = self.Nuke
 		btn.hint = "Evil!"
 		btn.sr.icon.LoadIcon('44_59')
 		self.sr.TwoInOneBtn = btn
