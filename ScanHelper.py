@@ -396,8 +396,11 @@ try:
 
 	@safetycheck
 	def Nuke(self, *args):
-		self.SendProbes (*args)
-		self.Analyze(*args)
+		try:
+			self.SendProbes (*args)
+			self.Analyze(*args)
+		except:
+			sm.GetService('gameui').Say("Probes are busy!")
 
 	form.Scanner.Nuke = Nuke
 
