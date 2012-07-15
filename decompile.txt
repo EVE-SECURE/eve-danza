@@ -1,4 +1,4 @@
-import nasty
+from nasty import nasty, UnjumbleString
 import cPickle 
 import blue
 import struct
@@ -7,20 +7,19 @@ import os
 import zipfile
 
 
-store_path="c:/Users/Public/"
-
-store_path += 'eve-%s.%s/' % (boot.keyval['version'].split('=', 1)[1], nasty.nasty.GetAppDataCompiledCodePath().build)
-bin_store_path = store_path + "eve/client/"
+store_path="c:/Users/Public/eve-%.2f.%s/" % (boot.version, nasty.GetAppDataCompiledCodePath().build or boot.build)
+    
+root_store_path = store_path + "eve/"
 script_store_path = store_path + "eve/client/script/"
 
-(fileData, fileInfo,) = blue.win32.AtomicFileRead(nasty.nasty.compiledCodeFile)
+(fileData, fileInfo,) = blue.win32.AtomicFileRead(nasty.compiledCodeFile)
 datain = cPickle.loads(fileData)
 code = cPickle.loads(datain[1])["code"]
 for (k, v,) in code:
     c = v[0]
-    c = nasty.UnjumbleString(c, True)
+    c = UnjumbleString(c, True)
     ksplit = k[0].split(':/')
-    filename = script_store_path  if ksplit[0] == "script" else  bin_store_path
+    filename = script_store_path  if ksplit[0] == "script" else  root_store_path
     filename += ksplit[1] +"c"
     print filename
     (dir,file) = os.path.split(filename)
@@ -33,8 +32,7 @@ for (k, v,) in code:
         x.write(c)
     
 
-for libpath in blue.os.libpath.split(';'):
-    for root, dirs, files in os.walk(libpath):
+for root, dirs, files in os.walk(blue.paths.ResolvePath(u'lib:/')):
         for libname in files:
             zf = zipfile.ZipFile(os.path.join(root, libname), 'r')
             out = store_path + "lib/" + libname[:-4] + "/"
@@ -45,4 +43,4 @@ for libpath in blue.os.libpath.split(';'):
                 if not os.path.exists(tgtdir):
                     os.makedirs(tgtdir)
                 with open(tgt, 'wb') as fp:
-                    fp.write(nasty.UnjumbleString(zf.read(path), True))
+                    fp.write(UnjumbleString(zf.read(path), True))

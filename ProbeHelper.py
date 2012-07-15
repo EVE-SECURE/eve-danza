@@ -105,13 +105,13 @@ try:
         if len(probeData) == 0:
             return
 
-        settingsName = 'ProbePositons2' if uicore.uilib.Key(uiconst.VK_CONTROL) else 'ProbePositions'
+        settingsName = 'ProbePositions2' if uicore.uilib.Key(uiconst.VK_CONTROL) else 'ProbePositions'
 
         if uicore.uilib.Key(uiconst.VK_SHIFT):
-            settings.public.ui.Set(settingsName, [(v.destination, v.rangeStep) for (k,v) in probeData])
+            settings.user.ui.Set(settingsName, [(v.destination, v.rangeStep) for (k,v) in probeData])
             return
         
-        pos = settings.public.ui.Get(settingsName, [])
+        pos = settings.user.ui.Get(settingsName, [])
         if( pos == [] ):
             return
             
@@ -128,27 +128,27 @@ try:
         old_apply_attributes(self, attributes)
         
         self.sr.destroyBtn.Close()
-        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=108)
+        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=120)
         btn.OnClick = self.SaveLoadProbePositions
-        btn.hint = "SHIFT-CLICK TO SAVE PROBES, CLICK TO LOAD PROBES"
+        btn.hint = "Load Probe Positions\nShift-Click to Save Probe Positions"
         btn.sr.icon.LoadIcon('44_03')
         self.sr.saveloadBtn = btn
 
-        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=152)
+        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=164)
         btn.OnClick = self.ContractProbes
-        btn.hint = "CONTRACT PROBES"
+        btn.hint = "Shrink Probe Pattern"
         btn.sr.icon.LoadIcon('44_43')
         self.sr.contractBtn = btn
      
-        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=184)
+        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=200)
         btn.OnClick = self.ExpandProbes
-        btn.hint = "EXPAND PROBES"
+        btn.hint = "Expand Probe Pattern"
         btn.sr.icon.LoadIcon('44_44')
         self.sr.expandBtn = btn
 
-        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=228)
+        btn = uix.GetBigButton(32, self.sr.systemTopParent, left=244)
         btn.OnClick = self.SendProbes
-        btn.hint = "SEND PROBES TO SELECTED RESULT"
+        btn.hint = "Send Probes to Selected Result"
         btn.sr.icon.LoadIcon('44_59')
         self.sr.sendBtn = btn
 
