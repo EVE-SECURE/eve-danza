@@ -2,45 +2,29 @@ try:
 	import service
 	import uix
 	import uiutil
-	import mathUtil
-	import blue
-	import appUtils
 	import uthread
 	import xtriui
 	import form
 	import triui
-	import trinity
 	import util
-	import draw
 	import sys
 	import types
 	import uicls
 	import uiconst
-	import time
-	import stackless
 	import functools
-	import listentry
-	import base
 	import math
-	import geo2
-	import vivoxConstants
 	import re
-	import chat
-	import moniker
 	import svc
 	import destiny
 	import menu
 	from itertools import izip, imap
 	from math import pi, cos, sin, sqrt
-	from foo import Vector3
 	from mapcommon import SYSTEMMAP_SCALE
 	from traceback import format_exception
-	import state
 	import random
-	import spaceObject
+	import base
+	import trinity
 	import blue
-	import timecurves
-	import copy
 
 	def safetycheck(func):
 		def wrapper(*args, **kwargs):
@@ -63,6 +47,7 @@ try:
 		except:
 			pass
 
+
 	@safetycheck
 	def randomPause(fromtime = 0, totime = 1000):
 		return random.randrange(fromtime, totime)
@@ -73,7 +58,7 @@ try:
 		__displayname__ = 'Steer Service'
 
 		def __init__(self):
-			service.Service.__init__(self)
+			#service.Service.__init__(self)
 			sm.GetService('gameui').Say('Steer Service started')
 			self.busy = 0
 			self.accelconst = 0.25
@@ -153,26 +138,26 @@ try:
 
 	@safetycheck
 	def CreateIt(*args):
-		bottomline = sm.GetService('neocom').bottomline
+		bottomline = sm.GetService('neocom').neocom.autoHideActive
 		if bottomline and hasattr(bottomline, "alive") and bottomline.alive:
 			msg('Steer Service already running!')
 		else:
-			sm.GetService('neocom').bottomline = SteerService()
+			sm.GetService('neocom').neocom.autoHideActive = SteerService()
 
 	@safetycheck
 	def DestroyIt(*args):
-		if sm.GetService('neocom').bottomline == None:
+		if sm.GetService('neocom').neocom.autoHideActive == None:
 			msg('LocalWatch Service not running!')
 			return
-		if hasattr(sm.GetService('neocom').bottomline, 'alive'):
-			sm.GetService('neocom').bottomline.CleanUp()
-		del sm.GetService('neocom').bottomline
-		sm.GetService('neocom').bottomline = None
+		if hasattr(sm.GetService('neocom').neocom.autoHideActive, 'alive'):
+			sm.GetService('neocom').neocom.autoHideActive.CleanUp()
+		del sm.GetService('neocom').neocom.autoHideActive
+		sm.GetService('neocom').neocom.autoHideActive = None
 		msg('Steer Service killed!')
 
 	try:
 
-		neocomwnd = sm.GetService('neocom').main
+		neocomwnd = sm.GetService('neocom').neocom
 		btn = uix.GetBigButton(32, neocomwnd, top=800)
 		btn.OnClick = CreateIt
 		btn.hint = "Start LocalWatch service"
