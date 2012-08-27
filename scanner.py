@@ -501,6 +501,82 @@ try:
 
     form.Scanner.DirectionSearch = DirectionSearch
 
+    def DirectionSearch2(self, *args):
+    	if ((self is None) or (self.destroyed or self.busy)):
+    		return
+    	self.busy = True
+    	self.ShowLoad()
+    	self.scanresult = []
+    	if self.sr.useoverview.checked:
+    		filters = sm.GetService('tactical').GetValidGroups()
+    	camera = sm.GetService('sceneManager').GetRegisteredCamera(None, defaultOnActiveCamera=True)
+    	if not camera:
+    		self.busy = False
+    		self.HideLoad()
+    		raise RuntimeError('No camera found?!')
+    	rot = camera.rotationAroundParent
+    	vec = trinity.TriVector(0.0, 0.0, 1.0)
+    	vec.TransformQuaternion(rot)
+
+        #from foo import Vector3
+    	selected = self.sr.resultscroll.GetSelected()
+    	target = vec
+    	try:
+
+			stuff = None
+			for each in uicore.registry.GetWindows():
+				if each.__guid__ == "form.ActiveItem":
+					stuff = each
+			itemid = stuff.itemIDs[0]
+			ball = sm.GetService('michelle').GetBallpark().GetBall(itemid)
+			target = trinity.TriVector(ball.x,ball.y, ball.z)
+    	except:
+    		sm.GetService('gameui').Say("No active item, going to scan results")
+
+		myball = None
+		ballpark = sm.GetService('michelle').GetBallpark()
+		if ballpark:
+			myball = ballpark.GetBall(eve.session.shipid)
+
+		source = trinity.TriVector(myball.x, myball.y, myball.z)
+
+		direction = target - source
+
+    	direction.Normalize()
+    	rnge = self.dir_rangeinput.GetValue()
+    	result = None
+    	try:
+    		result = sm.GetService('scanSvc').ConeScan(self.scanangle, (rnge * 1000), direction.x, direction.y, direction.z)
+    	except (UserError, RuntimeError), err:
+    		result = None
+    		self.busy = False
+    		self.HideLoad()
+    		#raise err
+    		return
+    	settings.user.ui.Set('dir_scanrange', rnge)
+    	if result:
+    		bp = sm.GetService('michelle').GetBallpark()
+    		if bp:
+    			for rec in result:
+    				if self.sr.useoverview.checked:
+    					if (rec.groupID not in filters):
+    						continue
+    				if (rec.id in bp.balls):
+    					self.scanresult.append([None,
+    					 bp.balls[rec.id],
+    					 rec])
+    				else:
+    					self.scanresult.append([None,
+    					 None,
+    					 rec])
+
+    	self.ShowResult()
+    	self.busy = False
+    	self.HideLoad()
+
+    form.Scanner.DirectionSearch2 = DirectionSearch2
+
+
     #@safetycheck
     def ShowResult(self, *args):
     	self.listtype = 'location'
@@ -659,6 +735,12 @@ try:
     	btn.OnClick = self.FlushDistData
     	btn.hint = "Flush distance data"
     	btn.sr.icon.LoadIcon('44_03')
+    	self.sr.flushBtn = btn
+
+    	btn = uix.GetBigButton(32, self.sr.useoverview.parent.parent, left=300 )
+    	btn.OnClick = self.DirectionSearch2
+    	btn.hint = "Flush distance data"
+    	btn.sr.icon.LoadIcon('44_05')
     	self.sr.flushBtn = btn
 
     	dslider = uix.GetSlider('slider', self.sr.useoverview.parent.parent, 'scandist', 1, 14.4, 'Range', '', uiconst.TOPRIGHT, 150, 18, 0, 15, getvaluefunc=self.GetGetGet, endsliderfunc=self.SetSetSet, increments=(1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.4), underlay=0)

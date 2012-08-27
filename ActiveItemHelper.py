@@ -87,24 +87,24 @@ try:
 				continue
 			if (itemID == currItem):
 				continue
-			"""
-			slimItem = uix.GetBallparkRecord(itemID)
-			invItem = self.TryGetInvItem(itemID)
-			if slimItem:
-				categoryID = cfg.invtypes.Get(slimItem.typeID).categoryID
-				groupID = cfg.invtypes.Get(slimItem.typeID).groupID
-			elif invItem:
-				typeOb = cfg.invtypes.Get(invItem.typeID)
-				groupID = typeOb.groupID
-				categoryID = typeOb.categoryID
-			if not ((categoryID == const.categoryAsteroid) or ((groupID in (const.groupAsteroidBelt,
-				 const.groupPlanet,
-				 const.groupMoon,
-				 const.groupSun,
-				 const.groupHarvestableCloud,
-				 const.groupSecondarySun)) )):
-				continue
-			"""
+##			"""
+##			slimItem = uix.GetBallparkRecord(itemID)
+##			invItem = self.TryGetInvItem(itemID)
+##			if slimItem:
+##				categoryID = cfg.invtypes.Get(slimItem.typeID).categoryID
+##				groupID = cfg.invtypes.Get(slimItem.typeID).groupID
+##			elif invItem:
+##				typeOb = cfg.invtypes.Get(invItem.typeID)
+##				groupID = typeOb.groupID
+##				categoryID = typeOb.categoryID
+##			if not ((categoryID == const.categoryAsteroid) or ((groupID in (const.groupAsteroidBelt,
+##				 const.groupPlanet,
+##				 const.groupMoon,
+##				 const.groupSun,
+##				 const.groupHarvestableCloud,
+##				 const.groupSecondarySun)) )):
+##				continue
+##			"""
 			itemBall = bp.GetBall(itemID)
 			proximity = abs(currBall.surfaceDist - itemBall.surfaceDist)
 			if proximity < shortestDist:
