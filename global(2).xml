@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+	<eveOverview>
+		<globalSettings>
+			<useSmallColorTags value="1"/>
+			<applyOnlyToShips value="1"/>
+			<hideCorpTicker value="0"/>
+			<overviewBroadcastsToTop value="1"/>
+			<columns>
+				<column id="ICON"/>
+				<column id="DISTANCE"/>
+				<column id="NAME"/>
+				<column id="TYPE"/>
+				<column id="VELOCITY"/>
+				<column id="TRANSVERSALVELOCITY"/>
+			</columns>
+			<shipLabels>
+				<label>
+					<part name="pre" value="&lt;color=0xff66FF00&gt;&lt;fontsize=11&gt;Shiptype:&#xA0;&lt;b&gt;"/>
+					<part name="state" value="1"/>
+					<part name="type" value="ship type"/>
+					<part name="post" value="&lt;/b&gt;&#xD;&#xA;"/>
+				</label><label>
+					<part name="pre" value="Pilotname: &lt;b&gt;"/>
+					<part name="state" value="1"/>
+					<part name="type" value="pilot name"/>
+					<part name="post" value="&lt;/b&gt;&#xD;&#xA;"/>
+				</label><label>
+					<part name="pre" value="Shipname: &#xA0;"/>
+					<part name="state" value="1"/>
+					<part name="type" value="ship name"/>
+					<part name="post" value="&#xD;&#xA;"/>
+				</label><label>
+					<part name="pre" value="&#xD;&#xA;"/>
+					<part name="state" value="1"/>
+					<part name="type" value="None"/>
+					<part name="post" value=""/>
+				</label><label>
+					<part name="pre" value="Corporation: ["/>
+					<part name="state" value="1"/>
+					<part name="type" value="corporation"/>
+					<part name="post" value="]&#xD;&#xA;"/>
+				</label><label>
+					<part name="pre" value="Alliance: &#xA0;&#xA0;&lt;b&gt;["/>
+					<part name="state" value="1"/>
+					<part name="type" value="alliance"/>
+					<part name="post" value="]&lt;/b&gt;&#xD;&#xA;"/>
+				</label><label>
+					<part name="pre" value="&#xD;&#xA;"/>
+					<part name="state" value="1"/>
+					<part name="type" value="None"/>
+					<part name="post" value=""/>
+				</label><label>
+					<part name="pre" value="Distance: "/>
+					<part name="state" value="1"/>
+					<part name="type" value="None"/>
+					<part name="post" value=""/>
+				</label>
+			</shipLabels>
+		</globalSettings>
+	</eveOverview>
